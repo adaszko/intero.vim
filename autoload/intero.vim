@@ -55,7 +55,7 @@ function! s:ghci_open() " {{{
                 \ 'vertical': 1,
                 \ 'norestore': 1,
                 \ }
-    let g:haskell_ghci_buffer = term_start('stack exec intero', options)
+    let g:haskell_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
     execute "normal \<c-w>p"
 endfunction " }}}
 function! s:ghci_close() " {{{
