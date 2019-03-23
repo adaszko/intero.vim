@@ -8,18 +8,19 @@ function! s:error(msg) " {{{
     echo 'markdown:' a:msg
     echohl None
 endfunction " }}}
+
 function! s:stack_build_open() " {{{
     if s:stack_build_is_open()
         echo "Stack build is already running"
         return
     endif
     let options = {
-                \ 'term_finish': 'close',
-                \ 'stoponexit': 'quit',
-                \ 'term_kill': 'quit',
-                \ 'vertical': 1,
-                \ 'norestore': 1,
-                \ }
+    \ 'term_finish': 'close',
+    \ 'stoponexit': 'quit',
+    \ 'term_kill': 'quit',
+    \ 'vertical': 1,
+    \ 'norestore': 1,
+    \ }
     let g:haskell_stack_build_buffer = term_start('stack build --file-watch --fast', options)
     execute "normal \<c-w>p"
 endfunction " }}}
