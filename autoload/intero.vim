@@ -52,8 +52,14 @@ function! intero#callback(channel, message) " {{{
 
     let lines = split(a:message, "\r")
 
-    if exists('g:intero_previous_line')
-        let lines[0] = g:intero_previous_line . lines[0]
+    if exists('g:intero_previous_truncated_line')
+        let lines[0] = g:intero_previous_truncated_line . lines[0]
+    endif
+
+    let last = lines[-1]
+    if last[strlen(last)-1] != ""
+        let g:intero_previous_truncated_line = lines[-1]
+        call remove(lines, -1)
     endif
 
     for line in lines
@@ -63,8 +69,6 @@ function! intero#callback(channel, message) " {{{
             return
         endif
     endfor
-
-    let g:intero_previous_line = lines[-1]
 endfunction " }}}
 function! intero#open() " {{{
     if intero#is_open()
@@ -90,8 +94,17 @@ function! intero#close() " {{{
     if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
         return
     endif
+
+    if exists('g:intero_service_port')
+        unlet g:intero_service_port
+    endif
+
+    if exists('g:intero_service_channel')
+        unlet g:intero_service_channel
+    endif
+
     execute printf('silent bdelete! %d', g:intero_ghci_buffer)
-    let g:intero_ghci_buffer = 0
+    unlet g:intero_ghci_buffer
 endfunction " }}}
 function! intero#is_open() " {{{
     return exists('g:intero_ghci_buffer') && g:intero_ghci_buffer != 0 && bufloaded(g:intero_ghci_buffer)
@@ -149,13 +162,35 @@ function! intero#type_of_selection() range " {{{
 
     call intero#type_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
+function! intero#send_service_line(line) " {{{
+    if !exists('g:intero_service_port')
+        call intero#error('Please start Intero first')
+        return
+    endif
 
-function! intero#loc_at_cursor() " {{{
+    if !exists('g:intero_service_channel') || exists('g:intero_service_channel') && ch_status(g:intero_service_channel) != 'open'
+        let addr = printf('localhost:%s', g:intero_service_port)
+        let options = {'mode': 'nl'}
+        let g:intero_service_channel = ch_open(addr, options)
+    endif
+
+    let message = printf("%s\r\n", a:line)
+    echomsg 'Sent command: ' . message
+    call ch_sendraw(g:intero_service_channel, message)
+endfunction " }}}
+function! intero#loc_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
+    let command = printf("loc-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
+    call intero#send_service_line(command)
+    let read =  ch_read(g:intero_service_channel)
+    echomsg 'Read response: ' . read
+    return read
+endfunction " }}}
+function! intero#loc_at_cursor() " {{{
     let [_, lnum, col, _] = getpos(".")
     let label = expand("<cword>")
-    let command = printf(":loc-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
-    call intero#send_line(command)
+    let result = intero#loc_at(lnum, col, lnum, col, label)
+    return result
 endfunction " }}}
 function! intero#uses_at_cursor() " {{{
     let module = expand("%:t:r")
@@ -165,11 +200,7 @@ function! intero#uses_at_cursor() " {{{
     call intero#send_line(command)
 endfunction " }}}
 function! intero#all_types() " {{{
-    let module = expand("%:t:r")
-    let [_, lnum, col, _] = getpos(".")
-    let label = expand("<cword>")
-    let command = printf(":all-types", module, lnum, col, lnum, col, label)
-    call intero#send_line(command)
+    return intero#send_service_line("all-types")
 endfunction " }}}
 function! intero#complete_at_cursor() " {{{
     let module = expand("%:t:r")
