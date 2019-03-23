@@ -43,6 +43,30 @@ function! intero#stack_build_toggle() " {{{
         call s:stack_build_open()
     endif
 endfunction " }}}
+
+function! intero#callback(channel, message) " {{{
+    if exists('g:intero_service_port') && g:intero_service_port
+        return
+    endif
+
+    let lines = split(a:message, "\r")
+
+    if exists('g:intero_previous_line')
+        let lines[0] = g:intero_previous_line . lines[0]
+    endif
+
+    for line in lines
+        let port = matchstr(line, '\vIntero-Service-Port: \zs\d+\ze')
+        if len(port) > 0
+            let g:intero_service_port = port
+            return
+        endif
+    endfor
+
+    let g:intero_previous_line = lines[-1]
+endfunction " }}}
+
+
 function! s:ghci_open() " {{{
     if s:haskell_ghci_is_open()
         call s:warning("GHCi is already running")
@@ -50,12 +74,13 @@ function! s:ghci_open() " {{{
     endif
 
     let options = {
-                \ 'term_finish': 'close',
-                \ 'stoponexit': 'quit',
-                \ 'term_kill': 'quit',
-                \ 'vertical': 1,
-                \ 'norestore': 1,
-                \ }
+    \ 'term_finish': 'close',
+    \ 'stoponexit': 'quit',
+    \ 'term_kill': 'quit',
+    \ 'vertical': 1,
+    \ 'norestore': 1,
+    \ 'callback': function('intero#callback'),
+    \ }
     let g:intero_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
     execute "normal \<c-w>p"
 endfunction " }}}
