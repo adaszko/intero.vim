@@ -1,16 +1,16 @@
-function! s:warning(msg) " {{{
+function! intero#warning(msg) " {{{
     echohl WarningMsg
     echo 'intero.vim:' a:msg
     echohl None
 endfunction " }}}
-function! s:error(msg) " {{{
+function! intero#error(msg) " {{{
     echohl ErrorMsg
     echo 'markdown:' a:msg
     echohl None
 endfunction " }}}
 
-function! s:stack_build_open() " {{{
-    if s:stack_build_is_open()
+function! intero#stack_build_open() " {{{
+    if intero#stack_build_is_open()
         echo "Stack build is already running"
         return
     endif
@@ -24,7 +24,7 @@ function! s:stack_build_open() " {{{
     let g:haskell_stack_build_buffer = term_start('stack build --file-watch --fast', options)
     execute "normal \<c-w>p"
 endfunction " }}}
-function! s:stack_build_close() " {{{
+function! intero#stack_build_close() " {{{
     if !exists('g:haskell_stack_build_buffer')
         let g:haskell_stack_build_buffer = 0
     endif
@@ -34,14 +34,14 @@ function! s:stack_build_close() " {{{
     execute printf('silent bdelete! %d', g:haskell_stack_build_buffer)
     let g:haskell_stack_build_buffer = 0
 endfunction " }}}
-function! s:stack_build_is_open() " {{{
+function! intero#stack_build_is_open() " {{{
     return exists('g:haskell_stack_build_buffer') && g:haskell_stack_build_buffer != 0 && bufloaded(g:haskell_stack_build_buffer)
 endfunction " }}}
 function! intero#stack_build_toggle() " {{{
-    if s:stack_build_is_open()
-        call s:stack_build_close()
+    if intero#stack_build_is_open()
+        call intero#stack_build_close()
     else
-        call s:stack_build_open()
+        call intero#stack_build_open()
     endif
 endfunction " }}}
 
@@ -66,11 +66,9 @@ function! intero#callback(channel, message) " {{{
 
     let g:intero_previous_line = lines[-1]
 endfunction " }}}
-
-
-function! s:ghci_open() " {{{
-    if s:haskell_ghci_is_open()
-        call s:warning("GHCi is already running")
+function! intero#open() " {{{
+    if intero#is_open()
+        call intero#warning("GHCi is already running")
         return
     endif
 
@@ -85,7 +83,7 @@ function! s:ghci_open() " {{{
     let g:intero_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
     execute "normal \<c-w>p"
 endfunction " }}}
-function! s:ghci_close() " {{{
+function! intero#close() " {{{
     if !exists('g:intero_ghci_buffer')
         let g:intero_ghci_buffer = 0
     endif
@@ -95,14 +93,14 @@ function! s:ghci_close() " {{{
     execute printf('silent bdelete! %d', g:intero_ghci_buffer)
     let g:intero_ghci_buffer = 0
 endfunction " }}}
-function! s:haskell_ghci_is_open() " {{{
+function! intero#is_open() " {{{
     return exists('g:intero_ghci_buffer') && g:intero_ghci_buffer != 0 && bufloaded(g:intero_ghci_buffer)
 endfunction " }}}
 function! intero#ghci_toggle() " {{{
-    if s:haskell_ghci_is_open()
-        call s:ghci_close()
+    if intero#is_open()
+        call intero#close()
     else
-        call s:ghci_open()
+        call intero#open()
     endif
 endfunction " }}}
 function! intero#send_line(string) " {{{
@@ -110,7 +108,7 @@ function! intero#send_line(string) " {{{
         let g:intero_ghci_buffer = 0
     endif
     if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
-        call s:error('Please start GHCi first')
+        call intero#error('Please start GHCi first')
         return
     endif
     let line = printf("%s\<c-m>", a:string)
@@ -151,6 +149,7 @@ function! intero#type_of_selection() range " {{{
 
     call intero#type_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
+
 function! intero#loc_at_cursor() " {{{
     let module = expand("%:t:r")
     let [_, lnum, col, _] = getpos(".")
