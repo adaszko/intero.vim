@@ -175,16 +175,34 @@ function! intero#send_service_line(line) " {{{
     endif
 
     let message = printf("%s\r\n", a:line)
-    echomsg 'Sent command: ' . message
     call ch_sendraw(g:intero_service_channel, message)
+endfunction " }}}
+function! intero#parse_loc_at_resp(resp) " {{{
+    " e.g. /Users/adaszko/repos/playground/app/Main.hs:(25,16)-(25,17)
+    let elements = matchlist(a:resp, '\v([^:]*):\((\d+),(\d+)\)-\((\d+),(\d+)\)')
+    if len(elements) == 0
+        let result = {
+            \ 'raw': a:resp,
+            \ }
+    else
+        let [_, file, start_line, start_col, end_line, end_col, _, _, _, _] = elements
+        let result = {
+            \ 'raw':        a:resp,
+            \ 'file':       file,
+            \ 'start_line': start_line,
+            \ 'start_col':  start_col,
+            \ 'end_line':   end_line,
+            \ 'end_col':    end_col,
+            \ }
+    endif
+    return result
 endfunction " }}}
 function! intero#loc_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
     let command = printf("loc-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
-    let read = ch_read(g:intero_service_channel)
-    echomsg 'Read response: ' . read
-    return read
+    let resp = ch_read(g:intero_service_channel)
+    return intero#parse_loc_at_resp(resp)
 endfunction " }}}
 function! intero#loc_at_cursor() " {{{
     let [_, lnum, col, _] = getpos(".")
@@ -204,6 +222,16 @@ function! intero#loc_of_selection() range " {{{
     endif
 
     return intero#loc_at(start_line, start_col, end_line, end_col, label)
+endfunction " }}}
+function! intero#go_to_definition() " {{{
+    let pos = intero#loc_at_cursor()
+
+    if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
+        let buffer = bufnr(pos['file'])
+        call setpos(".", [buffer, pos['start_line'], pos['start_col'], 0])
+    else
+        echo pos['raw']
+    endif
 endfunction " }}}
 function! intero#uses(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
