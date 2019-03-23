@@ -97,6 +97,25 @@ function! intero#type_at_cursor() " {{{
     let command = printf(":type-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
     call intero#send_line(command)
 endfunction " }}}
+function! intero#get_selection() range " {{{
+    let reg_save = getreg('"')
+    let regtype_save = getregtype('"')
+    let cb_save = &clipboard
+    set clipboard&
+    normal! ""gvy
+    let selection = getreg('"')
+    call setreg('"', reg_save, regtype_save)
+    let &clipboard = cb_save
+    return selection
+endfunction " }}}
+function! intero#type_of_selection() " {{{
+    let module = expand("%:t:r")
+    let [_, start_line, start_col, _] = getpos("'<")
+    let [_, end_line, end_col, _] = getpos("'>")
+    let selection = intero#get_selection()
+    let command = printf(":type-at %s %d %d %d %d %s", module, start_line, start_col, end_line, end_col, selection)
+    call intero#send_line(command)
+endfunction " }}}
 function! intero#loc_at_cursor() " {{{
     let module = expand("%:t:r")
     let [_, lnum, col, _] = getpos(".")
@@ -124,12 +143,6 @@ function! intero#complete_at_cursor() " {{{
     let label = expand("<cword>")
     let command = printf(":complete-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
     call intero#send_line(command)
-endfunction " }}}
-function! GetTermLine() " {{{
-    let cells = term_scrape(g:intero_ghci_buffer, ".")
-    let chars = map(cells, 'v:val["chars"]')
-    let chars = filter(chars, 'v:val != ""')
-    echo chars
 endfunction " }}}
 
 
