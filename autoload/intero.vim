@@ -90,12 +90,15 @@ function! intero#send_line(string) " {{{
     let line = printf("%s\<c-m>", a:string)
     call term_sendkeys(g:intero_ghci_buffer, line)
 endfunction " }}}
-function! intero#type_at_cursor() " {{{
+function! intero#type_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
-    let [_, lnum, col, _] = getpos(".")
-    let label = expand("<cword>")
-    let command = printf(":type-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
+    let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_line(command)
+endfunction " }}}
+function! intero#type_at_cursor() " {{{
+    let [_, line, col, _] = getpos(".")
+    let label = expand("<cword>")
+    call intero#type_at(line, col, line, col, label)
 endfunction " }}}
 function! intero#get_selection() range " {{{
     let reg_save = getreg('"')
@@ -109,12 +112,10 @@ function! intero#get_selection() range " {{{
     return selection
 endfunction " }}}
 function! intero#type_of_selection() " {{{
-    let module = expand("%:t:r")
     let [_, start_line, start_col, _] = getpos("'<")
     let [_, end_line, end_col, _] = getpos("'>")
     let selection = intero#get_selection()
-    let command = printf(":type-at %s %d %d %d %d %s", module, start_line, start_col, end_line, end_col, selection)
-    call intero#send_line(command)
+    call intero#type_at(start_line, start_col, end_line, end_col, selection)
 endfunction " }}}
 function! intero#loc_at_cursor() " {{{
     let module = expand("%:t:r")
