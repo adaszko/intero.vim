@@ -182,7 +182,7 @@ function! intero#loc_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
     let command = printf("loc-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
-    let read =  ch_read(g:intero_service_channel)
+    let read = ch_read(g:intero_service_channel)
     echomsg 'Read response: ' . read
     return read
 endfunction " }}}
@@ -191,7 +191,7 @@ function! intero#loc_at_cursor() " {{{
     let label = expand("<cword>")
     return intero#loc_at(lnum, col, lnum, col, label)
 endfunction " }}}
-function! intero#loc_of_selection() " {{{
+function! intero#loc_of_selection() range " {{{
     let [_, start_line, start_col, _] = getpos("'<")
     let [_, end_line, end_col, _] = getpos("'>")
     let selection = intero#get_selection()
@@ -205,23 +205,61 @@ function! intero#loc_of_selection() " {{{
 
     return intero#loc_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
-function! intero#uses_at_cursor() " {{{
+function! intero#uses(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
+    let command = printf(":uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
+    call intero#send_service_line(command)
+    return ch_read(g:intero_service_channel)
+endfunction " }}}
+function! intero#uses_at_cursor() " {{{
     let [_, lnum, col, _] = getpos(".")
     let label = expand("<cword>")
-    let command = printf(":uses %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
-    call intero#send_line(command)
+    return intero#uses(lnum, col, lnum, col, label)
+endfunction " }}}
+function! intero#uses_of_selection() range " {{{
+    let [_, start_line, start_col, _] = getpos("'<")
+    let [_, end_line, end_col, _] = getpos("'>")
+    let selection = intero#get_selection()
+
+    if a:firstline == a:lastline
+        let label = selection
+    else
+        let lines = split(selection, "\n")
+        let label = printf("%s...", lines[0])
+    endif
+
+    return intero#uses(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
 function! intero#all_types() " {{{
-    return intero#send_service_line("all-types")
+    call intero#send_service_line("all-types")
+    return ch_read(g:intero_service_channel)
+endfunction " }}}
+function! intero#complete_at(start_line, start_col, end_line, end_col) " {{{
+    let module = expand("%:t:r")
+    let label = expand("<cword>")
+    let command = printf(":complete-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, label)
+    call intero#send_line(command)
+    return ch_read(g:intero_service_channel)
 endfunction " }}}
 function! intero#complete_at_cursor() " {{{
     let module = expand("%:t:r")
     let [_, lnum, col, _] = getpos(".")
     let label = expand("<cword>")
-    let command = printf(":complete-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
-    call intero#send_line(command)
+    return intero#complete_at(lnum, col, lnum, col, label)
 endfunction " }}}
+function! intero#complete_selection() range " {{{
+    let [_, start_line, start_col, _] = getpos("'<")
+    let [_, end_line, end_col, _] = getpos("'>")
+    let selection = intero#get_selection()
 
+    if a:firstline == a:lastline
+        let label = selection
+    else
+        let lines = split(selection, "\n")
+        let label = printf("%s...", lines[0])
+    endif
+
+    return intero#complete_at(start_line, start_col, end_line, end_col, label)
+endfunction " }}}
 
 " vim:foldmethod=marker
