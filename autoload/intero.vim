@@ -111,11 +111,19 @@ function! intero#get_selection() range " {{{
     let &clipboard = cb_save
     return selection
 endfunction " }}}
-function! intero#type_of_selection() " {{{
+function! intero#type_of_selection() range " {{{
     let [_, start_line, start_col, _] = getpos("'<")
     let [_, end_line, end_col, _] = getpos("'>")
     let selection = intero#get_selection()
-    call intero#type_at(start_line, start_col, end_line, end_col, selection)
+
+    if a:firstline == a:lastline
+        let label = selection
+    else
+        let lines = split(selection, "\n")
+        let label = printf("%s...", lines[0])
+    endif
+
+    call intero#type_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
 function! intero#loc_at_cursor() " {{{
     let module = expand("%:t:r")
