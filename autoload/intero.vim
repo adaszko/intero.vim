@@ -48,6 +48,7 @@ function! s:ghci_open() " {{{
         call s:warning("GHCi is already running")
         return
     endif
+
     let options = {
                 \ 'term_finish': 'close',
                 \ 'stoponexit': 'quit',
@@ -55,21 +56,21 @@ function! s:ghci_open() " {{{
                 \ 'vertical': 1,
                 \ 'norestore': 1,
                 \ }
-    let g:haskell_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
+    let g:intero_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
     execute "normal \<c-w>p"
 endfunction " }}}
 function! s:ghci_close() " {{{
-    if !exists('g:haskell_ghci_buffer')
-        let g:haskell_ghci_buffer = 0
+    if !exists('g:intero_ghci_buffer')
+        let g:intero_ghci_buffer = 0
     endif
-    if g:haskell_ghci_buffer == 0 || !bufloaded(g:haskell_ghci_buffer)
+    if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
         return
     endif
-    execute printf('silent bdelete! %d', g:haskell_ghci_buffer)
-    let g:haskell_ghci_buffer = 0
+    execute printf('silent bdelete! %d', g:intero_ghci_buffer)
+    let g:intero_ghci_buffer = 0
 endfunction " }}}
 function! s:haskell_ghci_is_open() " {{{
-    return exists('g:haskell_ghci_buffer') && g:haskell_ghci_buffer != 0 && bufloaded(g:haskell_ghci_buffer)
+    return exists('g:intero_ghci_buffer') && g:intero_ghci_buffer != 0 && bufloaded(g:intero_ghci_buffer)
 endfunction " }}}
 function! intero#ghci_toggle() " {{{
     if s:haskell_ghci_is_open()
@@ -79,15 +80,56 @@ function! intero#ghci_toggle() " {{{
     endif
 endfunction " }}}
 function! intero#send_line(string) " {{{
-    if !exists('g:haskell_ghci_buffer')
-        let g:haskell_ghci_buffer = 0
+    if !exists('g:intero_ghci_buffer')
+        let g:intero_ghci_buffer = 0
     endif
-    if g:haskell_ghci_buffer == 0 || !bufloaded(g:haskell_ghci_buffer)
+    if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
         call s:error('Please start GHCi first')
         return
     endif
     let line = printf("%s\<c-m>", a:string)
-    call term_sendkeys(g:haskell_ghci_buffer, line)
+    call term_sendkeys(g:intero_ghci_buffer, line)
+endfunction " }}}
+function! intero#type_at_cursor() " {{{
+    let module = expand("%:t:r")
+    let [_, lnum, col, _] = getpos(".")
+    let label = expand("<cword>")
+    let command = printf(":type-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
+    call intero#send_line(command)
+endfunction " }}}
+function! intero#loc_at_cursor() " {{{
+    let module = expand("%:t:r")
+    let [_, lnum, col, _] = getpos(".")
+    let label = expand("<cword>")
+    let command = printf(":loc-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
+    call intero#send_line(command)
+endfunction " }}}
+function! intero#uses_at_cursor() " {{{
+    let module = expand("%:t:r")
+    let [_, lnum, col, _] = getpos(".")
+    let label = expand("<cword>")
+    let command = printf(":uses %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
+    call intero#send_line(command)
+endfunction " }}}
+function! intero#all_types() " {{{
+    let module = expand("%:t:r")
+    let [_, lnum, col, _] = getpos(".")
+    let label = expand("<cword>")
+    let command = printf(":all-types", module, lnum, col, lnum, col, label)
+    call intero#send_line(command)
+endfunction " }}}
+function! intero#complete_at_cursor() " {{{
+    let module = expand("%:t:r")
+    let [_, lnum, col, _] = getpos(".")
+    let label = expand("<cword>")
+    let command = printf(":complete-at %s %d %d %d %d %s", module, lnum, col, lnum, col, label)
+    call intero#send_line(command)
+endfunction " }}}
+function! GetTermLine() " {{{
+    let cells = term_scrape(g:intero_ghci_buffer, ".")
+    let chars = map(cells, 'v:val["chars"]')
+    let chars = filter(chars, 'v:val != ""')
+    echo chars
 endfunction " }}}
 
 
