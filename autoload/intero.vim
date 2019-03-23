@@ -189,8 +189,21 @@ endfunction " }}}
 function! intero#loc_at_cursor() " {{{
     let [_, lnum, col, _] = getpos(".")
     let label = expand("<cword>")
-    let result = intero#loc_at(lnum, col, lnum, col, label)
-    return result
+    return intero#loc_at(lnum, col, lnum, col, label)
+endfunction " }}}
+function! intero#loc_of_selection() " {{{
+    let [_, start_line, start_col, _] = getpos("'<")
+    let [_, end_line, end_col, _] = getpos("'>")
+    let selection = intero#get_selection()
+
+    if a:firstline == a:lastline
+        let label = selection
+    else
+        let lines = split(selection, "\n")
+        let label = printf("%s...", lines[0])
+    endif
+
+    return intero#loc_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
 function! intero#uses_at_cursor() " {{{
     let module = expand("%:t:r")
