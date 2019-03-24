@@ -109,7 +109,7 @@ endfunction " }}}
 function! intero#is_open() " {{{
     return exists('g:intero_ghci_buffer') && g:intero_ghci_buffer != 0 && bufloaded(g:intero_ghci_buffer)
 endfunction " }}}
-function! intero#ghci_toggle() " {{{
+function! intero#toggle() " {{{
     if intero#is_open()
         call intero#close()
     else
@@ -233,6 +233,7 @@ function! intero#go_to_definition() " {{{
         echo pos['raw']
     endif
 endfunction " }}}
+
 function! intero#parse_uses(lines, label) " {{{
     let result = []
 
@@ -319,10 +320,7 @@ function! intero#uses_of_selection() range " {{{
         echo resp
     endtry
 endfunction " }}}
-function! intero#all_types() " {{{
-    call intero#send_service_line("all-types")
-    return ch_read(g:intero_service_channel)
-endfunction " }}}
+
 function! intero#complete_at(start_line, start_col, end_line, end_col) " {{{
     let module = expand("%:t:r")
     let label = expand("<cword>")
@@ -349,6 +347,11 @@ function! intero#complete_selection() range " {{{
     endif
 
     return intero#complete_at(start_line, start_col, end_line, end_col, label)
+endfunction " }}}
+
+function! intero#all_types() " {{{
+    call intero#send_service_line("all-types")
+    return ch_read(g:intero_service_channel)
 endfunction " }}}
 
 " vim:foldmethod=marker
