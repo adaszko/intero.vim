@@ -321,32 +321,26 @@ function! intero#uses_of_selection() range " {{{
     endtry
 endfunction " }}}
 
-function! intero#complete_at(start_line, start_col, end_line, end_col) " {{{
+function! intero#complete_at(start_line, start_col, end_line, end_col, prefix) " {{{
     let module = expand("%:t:r")
-    let label = expand("<cword>")
-    let command = printf(":complete-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, label)
-    call intero#send_line(command)
-    return ch_read(g:intero_service_channel)
+    let command = printf("complete-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:prefix)
+    call intero#send_service_line(command)
+    return intero#slurp_resp(g:intero_service_channel)
 endfunction " }}}
-function! intero#complete_at_cursor() " {{{
-    let module = expand("%:t:r")
-    let [_, lnum, col, _] = getpos(".")
-    let label = expand("<cword>")
-    return intero#complete_at(lnum, col, lnum, col, label)
-endfunction " }}}
-function! intero#complete_selection() range " {{{
-    let [_, start_line, start_col, _] = getpos("'<")
-    let [_, end_line, end_col, _] = getpos("'>")
-    let selection = intero#get_selection()
-
-    if a:firstline == a:lastline
-        let label = selection
+function! intero#omnicomplete(findstart, base) " {{{
+    if a:findstart == 1
+        let line_under_cursor = getline('.')
+        let prefix_start_column = col('.') - 2
+        while prefix_start_column > 0 && match(strpart(line_under_cursor, prefix_start_column - 1), '\v^\k+') == 0
+            let prefix_start_column -= 1
+        endwhile
+        return prefix_start_column
     else
-        let lines = split(selection, "\n")
-        let label = printf("%s...", lines[0])
+        let module = expand("%:t:r")
+        let [_, lnum, col, _] = getpos(".")
+        let completions = intero#complete_at(lnum, col, lnum, col, a:base)
+        return completions
     endif
-
-    return intero#complete_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
 
 function! intero#all_types() " {{{
