@@ -329,6 +329,11 @@ endfunction " }}}
 function! intero#omnicomplete(findstart, base) " {{{
     if a:findstart == 1
         let line_under_cursor = getline('.')
+
+        if match(strpart(line_under_cursor, col('.') - 1), '\v^\k+') < 0
+            return col('.')
+        endif
+
         let prefix_start_column = col('.') - 2
         while prefix_start_column > 0 && match(strpart(line_under_cursor, prefix_start_column - 1), '\v^\k+') == 0
             let prefix_start_column -= 1
