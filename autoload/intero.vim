@@ -233,16 +233,71 @@ function! intero#go_to_definition() " {{{
         echo pos['raw']
     endif
 endfunction " }}}
+function! intero#parse_uses(lines, label) " {{{
+    let result = []
+
+    if len(a:lines) == 0
+        return result
+    endif
+
+    let filename_from_module_name = {}
+
+    for line in a:lines
+        let elements = matchlist(line, '\v([^:]*):\((\d+),(\d+)\)-\((\d+),(\d+)\)')
+
+        if len(elements) == 0
+            throw printf('intero#parse_uses:parse_error: %s', line)
+        endif
+
+        let [_, filename, start_line, start_col, end_line, end_col, _, _, _, _] = elements
+
+        if filereadable(filename)
+            let module_name = fnamemodify(filename, ':t:r')
+            let filename_from_module_name[module_name] = filename
+            continue
+        else
+            let filename = filename_from_module_name[filename]
+        endif
+
+        let partial = {
+            \ 'filename': filename,
+            \ 'lnum':     start_line,
+            \ 'col':      start_col,
+            \ 'text':     a:label,
+            \ }
+        let result = add(result, partial)
+    endfor
+
+    return result
+endfunction " }}}
+function! intero#slurp_resp(channel) " {{{
+    let lines = []
+    while ch_status(a:channel) == 'open'
+        let line = ch_read(a:channel)
+        if len(line) == 0
+            continue
+        endif
+        let lines = add(lines, line)
+    endwhile
+    return lines
+endfunction " }}}
 function! intero#uses(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
-    let command = printf(":uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
+    let command = printf("uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
-    return ch_read(g:intero_service_channel)
+    return intero#slurp_resp(g:intero_service_channel)
 endfunction " }}}
 function! intero#uses_at_cursor() " {{{
     let [_, lnum, col, _] = getpos(".")
     let label = expand("<cword>")
-    return intero#uses(lnum, col, lnum, col, label)
+    let resp = intero#uses(lnum, col, lnum, col, label)
+    try
+        let refs = intero#parse_uses(resp, label)
+        call setqflist(refs)
+    catch /^intero#parse_uses:parse_error/
+        echo 'raised'
+        echo resp
+    endtry
 endfunction " }}}
 function! intero#uses_of_selection() range " {{{
     let [_, start_line, start_col, _] = getpos("'<")
@@ -256,7 +311,13 @@ function! intero#uses_of_selection() range " {{{
         let label = printf("%s...", lines[0])
     endif
 
-    return intero#uses(start_line, start_col, end_line, end_col, label)
+    let refs = intero#uses(start_line, start_col, end_line, end_col, label)
+    try
+        let refs = intero#parse_uses(resp, label)
+        call setqflist(refs)
+    catch /^intero#parse_uses:parse_error/
+        echo resp
+    endtry
 endfunction " }}}
 function! intero#all_types() " {{{
     call intero#send_service_line("all-types")
