@@ -296,8 +296,7 @@ function! intero#uses_at_cursor() " {{{
         let refs = intero#parse_uses(resp, label)
         call setqflist(refs)
     catch /^intero#parse_uses:parse_error/
-        echo 'raised'
-        echo resp
+        echo resp[0]
     endtry
 endfunction " }}}
 function! intero#uses_of_selection() range " {{{
@@ -317,7 +316,7 @@ function! intero#uses_of_selection() range " {{{
         let refs = intero#parse_uses(resp, label)
         call setqflist(refs)
     catch /^intero#parse_uses:parse_error/
-        echo resp
+        echo resp[0]
     endtry
 endfunction " }}}
 
