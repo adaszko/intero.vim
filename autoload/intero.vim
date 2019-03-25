@@ -5,7 +5,7 @@ function! intero#warning(msg) " {{{
 endfunction " }}}
 function! intero#error(msg) " {{{
     echohl ErrorMsg
-    echo 'markdown:' a:msg
+    echo 'intero.vim:' a:msg
     echohl None
 endfunction " }}}
 
@@ -15,12 +15,12 @@ function! intero#stack_build_open() " {{{
         return
     endif
     let options = {
-    \ 'term_finish': 'close',
-    \ 'stoponexit': 'quit',
-    \ 'term_kill': 'quit',
-    \ 'vertical': 1,
-    \ 'norestore': 1,
-    \ }
+        \ 'term_finish': 'close',
+        \ 'stoponexit': 'quit',
+        \ 'term_kill': 'quit',
+        \ 'vertical': 1,
+        \ 'norestore': 1,
+        \ }
     let g:haskell_stack_build_buffer = term_start('stack build --file-watch --fast', options)
     execute "normal \<c-w>p"
 endfunction " }}}
@@ -121,7 +121,7 @@ function! intero#send_line(string) " {{{
         let g:intero_ghci_buffer = 0
     endif
     if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
-        call intero#error('Please start GHCi first')
+        call intero#error('Please start Intero first')
         return
     endif
     let line = printf("%s\<c-m>", a:string)
@@ -330,7 +330,7 @@ function! intero#omnicomplete(findstart, base) " {{{
     if a:findstart == 1
         let line_under_cursor = getline('.')
 
-        if match(strpart(line_under_cursor, col('.') - 1), '\v^\k+') < 0
+        if match(strpart(line_under_cursor, col('.') - 2), '\v^\k+') < 0
             return col('.')
         endif
 
