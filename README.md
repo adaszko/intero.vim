@@ -27,7 +27,7 @@ augroup my_haskell
 augroup END
 ```
 
-2) Build Intero withing your stack project: `stack build intero`
+2) Build Intero within your stack project: `stack build intero`
 3) Open your project file and use `,I` to start the Intero shell
 
 
