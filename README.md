@@ -2,7 +2,7 @@ A simple [Intero](https://github.com/chrisdone/intero) integration for Vim.
 
 # Usage
 
-Add to your `.vimrc`:
+1) Add to your `.vimrc`:
 
 ```VimL
 augroup my_haskell
@@ -26,3 +26,22 @@ augroup my_haskell
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>l :call intero#send_line(printf(":load %s", expand("%")))<CR>
 augroup END
 ```
+
+2) Build Intero withing your stack project: `stack build intero`
+3) Open your project file and use `,I` to start the Intero shell
+
+
+# (Not exhaustive) demo
+
+ * `:reload`, `:kind`, `:type`, go-to-definition
+
+![](gifs/various.gif)
+
+ * `:type-at` (get type of an expression)
+
+![](gifs/type-at.gif)
+
+ * `'omnifunc'` (Vim's `<C-X><C-O>` completion)
+
+![](gifs/omnicompletion.gif)
+

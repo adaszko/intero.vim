@@ -331,7 +331,7 @@ function! intero#omnicomplete(findstart, base) " {{{
         let line_under_cursor = getline('.')
 
         if match(strpart(line_under_cursor, col('.') - 2), '\v^\k+') < 0
-            return col('.')
+            return col('.') - 1
         endif
 
         let prefix_start_column = col('.') - 2
