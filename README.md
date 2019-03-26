@@ -2,7 +2,11 @@ A simple [Intero](https://github.com/chrisdone/intero) integration for Vim.
 
 # Usage
 
-1) Add to your `.vimrc`:
+1) `cd ~/.vim/pack/bundle/start/`
+
+2) `git clone https://github.com/adaszko/intero.vim.git`
+
+3) Add to your `.vimrc`:
 
 ```VimL
 augroup my_haskell
@@ -27,8 +31,8 @@ augroup my_haskell
 augroup END
 ```
 
-2) Build Intero within your stack project: `stack build intero`
-3) Open your project file and use `,I` to start the Intero shell
+4) Build Intero within your stack project: `stack build intero`
+5) Open your project file and use `,I` to start the Intero shell
 
 
 # (Not exhaustive) demo
