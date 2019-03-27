@@ -32,7 +32,8 @@ augroup END
 ```
 
 4) Build Intero within your stack project: `stack build intero`
-5) Open your project file and use `,I` to start the Intero shell
+5) Open your project file and use `\I` to start the Intero shell (adjust for
+   your `<LocalLeader>` setting)
 
 
 # (Not exhaustive) demo
