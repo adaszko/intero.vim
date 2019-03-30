@@ -73,12 +73,7 @@ function! intero#callback(channel, message) " {{{
         endif
     endfor
 endfunction " }}}
-function! intero#open() " {{{
-    if intero#is_open()
-        call intero#warning("GHCi is already running")
-        return
-    endif
-
+function! intero#ghci_open(command) " {{{
     let options = {
     \ 'term_finish': 'close',
     \ 'stoponexit': 'quit',
@@ -87,7 +82,16 @@ function! intero#open() " {{{
     \ 'norestore': 1,
     \ 'callback': function('intero#callback'),
     \ }
-    let t:intero_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
+    return term_start(a:command, options)
+endfunction " }}}
+function! intero#open(command) " {{{
+    if intero#is_open()
+        call intero#warning("GHCi is already running")
+        return
+    endif
+
+    let t:intero_ghci_buffer = intero#ghci_open(a:command)
+
     execute "normal \<c-w>p"
 endfunction " }}}
 function! intero#close() " {{{
@@ -116,9 +120,18 @@ function! intero#toggle() " {{{
     if intero#is_open()
         call intero#close()
     else
-        call intero#open()
+        call intero#open('stack ghci --with-ghc intero')
     endif
 endfunction " }}}
+
+function! intero#toggle_test() " {{{
+    if intero#is_open()
+        call intero#close()
+    else
+        call intero#open('stack ghci --with-ghc intero --test --no-load')
+    endif
+endfunction " }}}
+
 function! intero#send_line(string) " {{{
     if !exists('t:intero_ghci_buffer')
         let t:intero_ghci_buffer = 0
