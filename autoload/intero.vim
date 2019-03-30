@@ -8,6 +8,9 @@ function! intero#error(msg) " {{{
     echo 'intero.vim:' a:msg
     echohl None
 endfunction " }}}
+function! intero#show_intero_not_running_error() " {{{
+    call intero#error('Please start Intero first')
+endfunction " }}}
 
 function! intero#stack_build_open() " {{{
     if intero#stack_build_is_open()
@@ -121,8 +124,7 @@ function! intero#send_line(string) " {{{
         let g:intero_ghci_buffer = 0
     endif
     if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
-        call intero#error('Please start Intero first')
-        return
+        throw 'intero#intero-not-running'
     endif
     let line = printf("%s\<c-m>", a:string)
     call term_sendkeys(g:intero_ghci_buffer, line)
@@ -135,7 +137,12 @@ endfunction " }}}
 function! intero#type_at_cursor() " {{{
     let [_, line, col, _] = getpos(".")
     let label = expand("<cword>")
-    call intero#type_at(line, col, line, col, label)
+    try
+        call intero#type_at(line, col, line, col, label)
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+        return
+    endtry
 endfunction " }}}
 function! intero#get_selection() range " {{{
     let reg_save = getreg('"')
@@ -160,12 +167,16 @@ function! intero#type_of_selection() range " {{{
         let label = printf("%s...", lines[0])
     endif
 
-    call intero#type_at(start_line, start_col, end_line, end_col, label)
+    try
+        call intero#type_at(start_line, start_col, end_line, end_col, label)
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+        return
+    endtry
 endfunction " }}}
 function! intero#send_service_line(line) " {{{
     if !exists('g:intero_service_port')
-        call intero#error('Please start Intero first')
-        return
+        throw 'intero#intero-not-running'
     endif
 
     if !exists('g:intero_service_channel') || exists('g:intero_service_channel') && ch_status(g:intero_service_channel) != 'open'
@@ -224,7 +235,12 @@ function! intero#loc_of_selection() range " {{{
     return intero#loc_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
 function! intero#go_to_definition() " {{{
-    let pos = intero#loc_at_cursor()
+    try
+        let pos = intero#loc_at_cursor()
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+        return
+    endtry
 
     if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
         let buffer = bufnr(pos['file'])
@@ -247,7 +263,7 @@ function! intero#parse_uses(lines, label) " {{{
         let elements = matchlist(line, '\v([^:]*):\((\d+),(\d+)\)-\((\d+),(\d+)\)')
 
         if len(elements) == 0
-            throw printf('intero#parse_uses:parse_error: %s', line)
+            throw printf('intero#parse-error: %s', line)
         endif
 
         let [_, filename, start_line, start_col, end_line, end_col, _, _, _, _] = elements
@@ -295,7 +311,7 @@ function! intero#uses_at_cursor() " {{{
     try
         let refs = intero#parse_uses(resp, label)
         call setqflist(refs)
-    catch /^intero#parse_uses:parse_error/
+    catch /^intero#parse-error:/
         echo resp[0]
     endtry
 endfunction " }}}
@@ -315,7 +331,7 @@ function! intero#uses_of_selection() range " {{{
     try
         let refs = intero#parse_uses(resp, label)
         call setqflist(refs)
-    catch /^intero#parse_uses:parse_error/
+    catch /^intero#parse-error:/
         echo resp[0]
     endtry
 endfunction " }}}
