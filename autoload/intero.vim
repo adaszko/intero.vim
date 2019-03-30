@@ -129,6 +129,21 @@ function! intero#send_line(string) " {{{
     let line = printf("%s\<c-m>", a:string)
     call term_sendkeys(g:intero_ghci_buffer, line)
 endfunction " }}}
+function! intero#send_selection() range " {{{
+    let selection = intero#get_selection()
+    let lines = split(selection, "\n")
+    if len(lines) == 0
+        return
+    elseif len(lines) == 1
+        call intero#send_line(lines[0])
+    else
+        call intero#send_line(":{")
+        for line in lines
+            call intero#send_line(line)
+        endfor
+        call intero#send_line(":}")
+    endif
+endfunction " }}}
 function! intero#type_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
