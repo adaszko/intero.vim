@@ -37,6 +37,20 @@ augroup END
    your `<LocalLeader>` setting)
 
 
+## Tips
+
+Completion and go-to-def smarts work on the last successfully loaded version
+of a Haskell module.  If you're in the middle of resolving type errors and
+still want to use up-to-date version of your code, you may want to use `:set
+-fdefer-type-errors` option, or even define a mapping for it:
+
+
+```VimL
+[...]
+autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>d :call intero#send_line(":set -fdefer-type-errors")<CR>
+[...]
+```
+
 # (Not exhaustive) demo
 
  * `:reload`, `:kind`, `:type`, go-to-definition
