@@ -132,6 +132,14 @@ function! intero#toggle_test() " {{{
     endif
 endfunction " }}}
 
+function! intero#get_module_name() " {{{
+    let module = expand("%:t:r")
+    if module == 'Spec'
+        return 'Main'
+    endif
+    return module
+endfunction " }}}
+
 function! intero#send_line(string) " {{{
     if !exists('t:intero_ghci_buffer')
         let t:intero_ghci_buffer = 0
@@ -158,7 +166,7 @@ function! intero#send_selection() range " {{{
     endif
 endfunction " }}}
 function! intero#type_at(start_line, start_col, end_line, end_col, label) " {{{
-    let module = expand("%:t:r")
+    let module = intero#get_module_name()
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_line(command)
 endfunction " }}}
@@ -237,7 +245,7 @@ function! intero#parse_loc_at_resp(resp) " {{{
     return result
 endfunction " }}}
 function! intero#loc_at(start_line, start_col, end_line, end_col, label) " {{{
-    let module = expand("%:t:r")
+    let module = intero#get_module_name()
     let command = printf("loc-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
     let resp = ch_read(t:intero_service_channel)
@@ -327,7 +335,7 @@ function! intero#slurp_resp(channel) " {{{
     return lines
 endfunction " }}}
 function! intero#uses(start_line, start_col, end_line, end_col, label) " {{{
-    let module = expand("%:t:r")
+    let module = intero#get_module_name()
     let command = printf("uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
     return intero#slurp_resp(t:intero_service_channel)
@@ -365,7 +373,7 @@ function! intero#uses_of_selection() range " {{{
 endfunction " }}}
 
 function! intero#complete_at(start_line, start_col, end_line, end_col, prefix) " {{{
-    let module = expand("%:t:r")
+    let module = intero#get_module_name()
     let command = printf("complete-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:prefix)
     call intero#send_service_line(command)
     return intero#slurp_resp(t:intero_service_channel)
@@ -384,7 +392,7 @@ function! intero#omnicomplete(findstart, base) " {{{
         endwhile
         return prefix_start_column
     else
-        let module = expand("%:t:r")
+        let module = intero#get_module_name()
         let [_, lnum, col, _] = getpos(".")
         let completions = intero#complete_at(lnum, col, lnum, col, a:base)
         return completions
