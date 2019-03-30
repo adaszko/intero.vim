@@ -24,21 +24,21 @@ function! intero#stack_build_open() " {{{
         \ 'vertical': 1,
         \ 'norestore': 1,
         \ }
-    let g:haskell_stack_build_buffer = term_start('stack build --file-watch --fast', options)
+    let t:haskell_stack_build_buffer = term_start('stack build --file-watch --fast', options)
     execute "normal \<c-w>p"
 endfunction " }}}
 function! intero#stack_build_close() " {{{
-    if !exists('g:haskell_stack_build_buffer')
-        let g:haskell_stack_build_buffer = 0
+    if !exists('t:haskell_stack_build_buffer')
+        let t:haskell_stack_build_buffer = 0
     endif
-    if g:haskell_stack_build_buffer == 0 || !bufloaded(g:haskell_stack_build_buffer)
+    if t:haskell_stack_build_buffer == 0 || !bufloaded(t:haskell_stack_build_buffer)
         return
     endif
-    execute printf('silent bdelete! %d', g:haskell_stack_build_buffer)
-    let g:haskell_stack_build_buffer = 0
+    execute printf('silent bdelete! %d', t:haskell_stack_build_buffer)
+    let t:haskell_stack_build_buffer = 0
 endfunction " }}}
 function! intero#stack_build_is_open() " {{{
-    return exists('g:haskell_stack_build_buffer') && g:haskell_stack_build_buffer != 0 && bufloaded(g:haskell_stack_build_buffer)
+    return exists('t:haskell_stack_build_buffer') && t:haskell_stack_build_buffer != 0 && bufloaded(t:haskell_stack_build_buffer)
 endfunction " }}}
 function! intero#stack_build_toggle() " {{{
     if intero#stack_build_is_open()
@@ -49,26 +49,26 @@ function! intero#stack_build_toggle() " {{{
 endfunction " }}}
 
 function! intero#callback(channel, message) " {{{
-    if exists('g:intero_service_port') && g:intero_service_port
+    if exists('t:intero_service_port') && t:intero_service_port
         return
     endif
 
     let lines = split(a:message, "\r")
 
-    if exists('g:intero_previous_truncated_line')
-        let lines[0] = g:intero_previous_truncated_line . lines[0]
+    if exists('t:intero_previous_truncated_line')
+        let lines[0] = t:intero_previous_truncated_line . lines[0]
     endif
 
     let last = lines[-1]
     if last[strlen(last)-1] != ""
-        let g:intero_previous_truncated_line = lines[-1]
+        let t:intero_previous_truncated_line = lines[-1]
         call remove(lines, -1)
     endif
 
     for line in lines
         let port = matchstr(line, '\vIntero-Service-Port: \zs\d+\ze')
         if len(port) > 0
-            let g:intero_service_port = port
+            let t:intero_service_port = port
             return
         endif
     endfor
@@ -87,30 +87,30 @@ function! intero#open() " {{{
     \ 'norestore': 1,
     \ 'callback': function('intero#callback'),
     \ }
-    let g:intero_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
+    let t:intero_ghci_buffer = term_start('stack ghci --with-ghc intero', options)
     execute "normal \<c-w>p"
 endfunction " }}}
 function! intero#close() " {{{
-    if !exists('g:intero_ghci_buffer')
-        let g:intero_ghci_buffer = 0
+    if !exists('t:intero_ghci_buffer')
+        let t:intero_ghci_buffer = 0
     endif
-    if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
+    if t:intero_ghci_buffer == 0 || !bufloaded(t:intero_ghci_buffer)
         return
     endif
 
-    if exists('g:intero_service_port')
-        unlet g:intero_service_port
+    if exists('t:intero_service_port')
+        unlet t:intero_service_port
     endif
 
-    if exists('g:intero_service_channel')
-        unlet g:intero_service_channel
+    if exists('t:intero_service_channel')
+        unlet t:intero_service_channel
     endif
 
-    execute printf('silent bdelete! %d', g:intero_ghci_buffer)
-    unlet g:intero_ghci_buffer
+    execute printf('silent bdelete! %d', t:intero_ghci_buffer)
+    unlet t:intero_ghci_buffer
 endfunction " }}}
 function! intero#is_open() " {{{
-    return exists('g:intero_ghci_buffer') && g:intero_ghci_buffer != 0 && bufloaded(g:intero_ghci_buffer)
+    return exists('t:intero_ghci_buffer') && t:intero_ghci_buffer != 0 && bufloaded(t:intero_ghci_buffer)
 endfunction " }}}
 function! intero#toggle() " {{{
     if intero#is_open()
@@ -120,14 +120,14 @@ function! intero#toggle() " {{{
     endif
 endfunction " }}}
 function! intero#send_line(string) " {{{
-    if !exists('g:intero_ghci_buffer')
-        let g:intero_ghci_buffer = 0
+    if !exists('t:intero_ghci_buffer')
+        let t:intero_ghci_buffer = 0
     endif
-    if g:intero_ghci_buffer == 0 || !bufloaded(g:intero_ghci_buffer)
+    if t:intero_ghci_buffer == 0 || !bufloaded(t:intero_ghci_buffer)
         throw 'intero#intero-not-running'
     endif
     let line = printf("%s\<c-m>", a:string)
-    call term_sendkeys(g:intero_ghci_buffer, line)
+    call term_sendkeys(t:intero_ghci_buffer, line)
 endfunction " }}}
 function! intero#send_selection() range " {{{
     let selection = intero#get_selection()
@@ -190,18 +190,18 @@ function! intero#type_of_selection() range " {{{
     endtry
 endfunction " }}}
 function! intero#send_service_line(line) " {{{
-    if !exists('g:intero_service_port')
+    if !exists('t:intero_service_port')
         throw 'intero#intero-not-running'
     endif
 
-    if !exists('g:intero_service_channel') || exists('g:intero_service_channel') && ch_status(g:intero_service_channel) != 'open'
-        let addr = printf('localhost:%s', g:intero_service_port)
+    if !exists('t:intero_service_channel') || exists('t:intero_service_channel') && ch_status(t:intero_service_channel) != 'open'
+        let addr = printf('localhost:%s', t:intero_service_port)
         let options = {'mode': 'nl'}
-        let g:intero_service_channel = ch_open(addr, options)
+        let t:intero_service_channel = ch_open(addr, options)
     endif
 
     let message = printf("%s\r\n", a:line)
-    call ch_sendraw(g:intero_service_channel, message)
+    call ch_sendraw(t:intero_service_channel, message)
 endfunction " }}}
 function! intero#parse_loc_at_resp(resp) " {{{
     " e.g. /Users/adaszko/repos/playground/app/Main.hs:(25,16)-(25,17)
@@ -227,7 +227,7 @@ function! intero#loc_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
     let command = printf("loc-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
-    let resp = ch_read(g:intero_service_channel)
+    let resp = ch_read(t:intero_service_channel)
     return intero#parse_loc_at_resp(resp)
 endfunction " }}}
 function! intero#loc_at_cursor() " {{{
@@ -317,7 +317,7 @@ function! intero#uses(start_line, start_col, end_line, end_col, label) " {{{
     let module = expand("%:t:r")
     let command = printf("uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
-    return intero#slurp_resp(g:intero_service_channel)
+    return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
 function! intero#uses_at_cursor() " {{{
     let [_, lnum, col, _] = getpos(".")
@@ -355,7 +355,7 @@ function! intero#complete_at(start_line, start_col, end_line, end_col, prefix) "
     let module = expand("%:t:r")
     let command = printf("complete-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:prefix)
     call intero#send_service_line(command)
-    return intero#slurp_resp(g:intero_service_channel)
+    return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
 function! intero#omnicomplete(findstart, base) " {{{
     if a:findstart == 1
@@ -380,7 +380,7 @@ endfunction " }}}
 
 function! intero#all_types() " {{{
     call intero#send_service_line("all-types")
-    return ch_read(g:intero_service_channel)
+    return ch_read(t:intero_service_channel)
 endfunction " }}}
 
 " vim:foldmethod=marker
