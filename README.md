@@ -12,8 +12,8 @@ A simple [Intero](https://github.com/chrisdone/intero) integration for Vim.
 augroup my_haskell
     autocmd!
 
-    autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>I <Plug>intero_toggle
-    autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>B <Plug>intero_toggle_stack_build
+    autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>I :call intero#toggle()<CR>
+    autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>B :call intero#stack_build_toggle()<CR>
 
     autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition()<CR>
     autocmd FileType haskell setlocal omnifunc=intero#omnicomplete
