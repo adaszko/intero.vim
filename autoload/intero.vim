@@ -73,15 +73,24 @@ function! intero#callback(channel, message) " {{{
         endif
     endfor
 endfunction " }}}
+function! intero#close_callback(channel) " {{{
+    call intero#close()
+endfunction " }}}
+function! intero#exit_callback(job, exit_status) " {{{
+    call intero#close()
+endfunction " }}}
 function! intero#ghci_open(command) " {{{
     let options = {
-    \ 'term_finish': 'close',
-    \ 'stoponexit': 'quit',
-    \ 'term_kill': 'quit',
-    \ 'vertical': 1,
-    \ 'norestore': 1,
-    \ 'callback': function('intero#callback'),
-    \ }
+        \ 'term_finish': 'close',
+        \ 'stoponexit':  'quit',
+        \ 'term_kill':   'quit',
+        \ 'vertical':    1,
+        \ 'norestore':   1,
+        \ 'callback':    function('intero#callback'),
+        \ 'exit_cb':     function('intero#exit_callback'),
+        \ 'close_cb':    function('intero#close_callback'),
+        \ }
+
     return term_start(a:command, options)
 endfunction " }}}
 function! intero#open(command) " {{{
