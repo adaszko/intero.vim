@@ -289,6 +289,7 @@ function! intero#go_to_definition() " {{{
 
     if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
         let buffer = bufnr(pos['file'])
+        execute printf("buffer %d", buffer)
         call setpos(".", [buffer, pos['start_line'], pos['start_col'], 0])
     else
         echo pos['raw']
