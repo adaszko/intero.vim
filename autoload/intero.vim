@@ -378,24 +378,44 @@ function! intero#complete_at(start_line, start_col, end_line, end_col, prefix) "
     call intero#send_service_line(command)
     return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
+function! intero#omnicomplete_find_start() " {{{
+    let line_under_cursor = getline('.')
+
+    if match(strpart(line_under_cursor, col('.') - 2), '\v^\k+') < 0
+        return col('.') - 1
+    endif
+
+    let prefix_start_column = col('.') - 2
+    while prefix_start_column > 0 && match(strpart(line_under_cursor, prefix_start_column - 1), '\v^\k+') == 0
+        let prefix_start_column -= 1
+    endwhile
+    return prefix_start_column
+endfunction " }}}
+function! intero#omnicomplete_get_completions(base) " {{{
+    let module = intero#get_module_name()
+    let [_, lnum, col, _] = getpos(".")
+    echomsg printf("%d %d %s", lnum, col, a:base)
+    let completions = intero#complete_at(lnum, col, lnum, col, a:base)
+    return completions
+endfunction " }}}
 function! intero#omnicomplete(findstart, base) " {{{
     if a:findstart == 1
-        let line_under_cursor = getline('.')
-
-        if match(strpart(line_under_cursor, col('.') - 2), '\v^\k+') < 0
-            return col('.') - 1
-        endif
-
-        let prefix_start_column = col('.') - 2
-        while prefix_start_column > 0 && match(strpart(line_under_cursor, prefix_start_column - 1), '\v^\k+') == 0
-            let prefix_start_column -= 1
-        endwhile
-        return prefix_start_column
+        return intero#omnicomplete_find_start()
     else
-        let module = intero#get_module_name()
-        let [_, lnum, col, _] = getpos(".")
-        let completions = intero#complete_at(lnum, col, lnum, col, a:base)
-        return completions
+        return intero#omnicomplete_get_completions(a:base)
+    endif
+endfunction " }}}
+
+function! intero#get_user_completions(base) " {{{
+    let extensions = systemlist("stack ghc -- --supported-extensions")
+    let matching = filter(extensions, printf('v:val =~ "^%s"', escape(a:base, '"')))
+    return matching
+endfunction " }}}
+function intero#completefunc(findstart, base) " {{{
+    if a:findstart == 1
+        return intero#omnicomplete_find_start()
+    else
+        return intero#get_user_completions(a:base)
     endif
 endfunction " }}}
 
