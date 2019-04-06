@@ -149,15 +149,18 @@ function! intero#get_module_name() " {{{
     return module
 endfunction " }}}
 
-function! intero#send_line(string) " {{{
+function! intero#send_keys(keys) " {{{
     if !exists('t:intero_ghci_buffer')
         let t:intero_ghci_buffer = 0
     endif
     if t:intero_ghci_buffer == 0 || !bufloaded(t:intero_ghci_buffer)
         throw 'intero#intero-not-running'
     endif
+    call term_sendkeys(t:intero_ghci_buffer, a:keys)
+endfunction " }}}
+function! intero#send_line(string) " {{{
     let line = printf("%s\<c-m>", a:string)
-    call term_sendkeys(t:intero_ghci_buffer, line)
+    return intero#send_keys(line)
 endfunction " }}}
 function! intero#send_selection() range " {{{
     let selection = intero#get_selection()
