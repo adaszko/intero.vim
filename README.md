@@ -24,6 +24,7 @@ augroup my_haskell
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>k :call intero#send_line(printf(":kind %s", expand("<cword>")))<CR>
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>r :call intero#send_line(":reload")<CR>
     autocmd FileType haskell xnoremap <silent> <buffer> <LocalLeader>s :call intero#send_selection()<CR>
+    autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>s :call intero#send_current_line()<CR>
 
     " Populates the quickfix list.  Use :copen to see the results
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>R :call intero#uses_at_cursor()<CR>

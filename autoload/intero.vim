@@ -174,6 +174,11 @@ function! intero#send_selection() range " {{{
         call intero#send_line(":}")
     endif
 endfunction " }}}
+function! intero#send_current_line() " {{{
+    let line = getline(".")
+    let without_initial_whitespace = substitute(line, '\v^\s+', '', '')
+    return intero#send_line(without_initial_whitespace)
+endfunction " }}}
 function! intero#type_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = intero#get_module_name()
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
