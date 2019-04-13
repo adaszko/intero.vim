@@ -25,7 +25,7 @@ augroup my_haskell
     autocmd FileType haskell xnoremap <silent> <buffer> <LocalLeader>s :call intero#send_selection()<CR>
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>s :call intero#send_current_line()<CR>
 
-    " Populates the quickfix list.  Use :copen to see the results
+    " Populates the location list.  Use :lopen to see the results
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>R :call intero#uses_at_cursor()<CR>
 
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>l :call intero#send_line(printf(":load %s", expand("%")))<CR>
@@ -67,4 +67,5 @@ autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>d :call intero#
 
 # Changelog
 
+ * 2019-04-13 :uses now populates location list instead of quickfix list
  * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.

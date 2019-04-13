@@ -332,7 +332,7 @@ function! intero#uses_at_cursor() " {{{
     let resp = intero#uses(lnum, col, lnum, col, label)
     try
         let refs = intero#parse_uses(resp, label)
-        call setqflist(refs)
+        call setloclist(0, refs)
     catch /^intero#parse-error:/
         echo resp[0]
     endtry
@@ -352,7 +352,7 @@ function! intero#uses_of_selection() range " {{{
     let refs = intero#uses(start_line, start_col, end_line, end_col, label)
     try
         let refs = intero#parse_uses(resp, label)
-        call setqflist(refs)
+        call setloclist(0, refs)
     catch /^intero#parse-error:/
         echo resp[0]
     endtry
