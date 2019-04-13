@@ -13,7 +13,6 @@ augroup my_haskell
     autocmd!
 
     autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>I :call intero#toggle()<CR>
-    autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>B :call intero#stack_build_toggle()<CR>
 
     autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition()<CR>
     autocmd FileType haskell setlocal omnifunc=intero#omnicomplete
@@ -66,3 +65,6 @@ autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>d :call intero#
 
 ![](gifs/omnicompletion.gif)
 
+# Changelog
+
+ * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.

@@ -12,42 +12,6 @@ function! intero#show_intero_not_running_error() " {{{
     call intero#error('Please start Intero first')
 endfunction " }}}
 
-function! intero#stack_build_open() " {{{
-    if intero#stack_build_is_open()
-        echo "Stack build is already running"
-        return
-    endif
-    let options = {
-        \ 'term_finish': 'close',
-        \ 'stoponexit': 'quit',
-        \ 'term_kill': 'quit',
-        \ 'vertical': 1,
-        \ 'norestore': 1,
-        \ }
-    let t:haskell_stack_build_buffer = term_start('stack build --file-watch --fast', options)
-    execute "normal \<c-w>p"
-endfunction " }}}
-function! intero#stack_build_close() " {{{
-    if !exists('t:haskell_stack_build_buffer')
-        let t:haskell_stack_build_buffer = 0
-    endif
-    if t:haskell_stack_build_buffer == 0 || !bufloaded(t:haskell_stack_build_buffer)
-        return
-    endif
-    execute printf('silent bdelete! %d', t:haskell_stack_build_buffer)
-    let t:haskell_stack_build_buffer = 0
-endfunction " }}}
-function! intero#stack_build_is_open() " {{{
-    return exists('t:haskell_stack_build_buffer') && t:haskell_stack_build_buffer != 0 && bufloaded(t:haskell_stack_build_buffer)
-endfunction " }}}
-function! intero#stack_build_toggle() " {{{
-    if intero#stack_build_is_open()
-        call intero#stack_build_close()
-    else
-        call intero#stack_build_open()
-    endif
-endfunction " }}}
-
 function! intero#callback(channel, message) " {{{
     if exists('t:intero_service_port') && t:intero_service_port
         return
@@ -416,7 +380,6 @@ endfunction " }}}
 function! intero#omnicomplete_get_completions(base) " {{{
     let module = intero#get_module_name()
     let [_, lnum, col, _] = getpos(".")
-    echomsg printf("%d %d %s", lnum, col, a:base)
     let completions = intero#complete_at(lnum, col, lnum, col, a:base)
     return completions
 endfunction " }}}
