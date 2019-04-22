@@ -74,5 +74,10 @@ autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>d :call intero#
 
 # Changelog
 
+Breaking changes:
  * 2019-04-13 :uses now populates location list instead of quickfix list
  * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.
+
+Backward-compatible changes:
+ * 2019-04-22 Support e.g. centering after a successful go-to-def
+ * 2019-04-22 Support :reloading on a buffer write
