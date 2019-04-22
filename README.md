@@ -14,6 +14,9 @@ augroup my_haskell
 
     autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>I :call intero#toggle()<CR>
 
+    " For use in Spec.hs;  Doesn't do :load automatically
+    autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>T :call intero#toggle_test()<CR>
+
     autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition()<CR>
     autocmd FileType haskell setlocal omnifunc=intero#omnicomplete
 
@@ -29,6 +32,9 @@ augroup my_haskell
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>R :call intero#uses_at_cursor()<CR>
 
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>l :call intero#send_line(printf(":load %s", expand("%")))<CR>
+
+    " Does :reload on every write of a Haskell buffer, along with clearing the screen.
+    autocmd BufWritePost *.hs call intero#send_keys(':reload')
 augroup END
 ```
 
