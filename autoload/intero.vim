@@ -251,7 +251,7 @@ function! intero#loc_of_selection() range " {{{
 
     return intero#loc_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
-function! intero#go_to_definition() " {{{
+function! intero#go_to_definition(...) " {{{
     try
         let pos = intero#loc_at_cursor()
     catch /^intero#intero-not-running$/
@@ -267,6 +267,10 @@ function! intero#go_to_definition() " {{{
         endif
         execute printf("buffer %s", buffer)
         call setpos(".", [buffer, pos['start_line'], pos['start_col'], 0])
+
+        for normal_command in a:000
+            execute printf('normal %s', normal_command)
+        endfor
     else
         echo pos['raw']
     endif

@@ -17,7 +17,8 @@ augroup my_haskell
     " For use in Spec.hs;  Doesn't do :load automatically
     autocmd FileType haskell nmap <silent> <buffer> <LocalLeader>T :call intero#toggle_test()<CR>
 
-    autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition()<CR>
+    " intero#go_to_definition() accepts normal mode commands to execute after a successful jump
+    autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition('zz')<CR>
     autocmd FileType haskell setlocal omnifunc=intero#omnicomplete
 
     autocmd FileType haskell xnoremap <silent> <buffer> <LocalLeader>t :call intero#type_of_selection()<CR>
