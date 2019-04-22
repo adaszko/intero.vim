@@ -64,6 +64,7 @@ function! intero#open(command) " {{{
     endif
 
     let t:intero_ghci_buffer = intero#ghci_open(a:command)
+    call setbufvar(t:intero_ghci_buffer, "&filetype", "intero")
 
     execute "normal \<c-w>p"
 endfunction " }}}
@@ -411,6 +412,48 @@ endfunction " }}}
 function! intero#all_types() " {{{
     call intero#send_service_line("all-types")
     return ch_read(t:intero_service_channel)
+endfunction " }}}
+
+function! intero#looking_at(regex) " {{{
+    let start = 0
+    let line = getline(".")
+    let [_, lnum, col, _] = getpos(".")
+
+    while 1
+        if start > col
+            break
+        endif
+
+        let matchpos = match(line, a:regex, start)
+        if matchpos == -1
+            break
+        endif
+
+        let matchlen = strlen(matchstr(strpart(line, matchpos), a:regex))
+        if matchlen == 0
+            throw 'looking_at: Zero-length match for regex: ' . a:regex
+        endif
+
+        if matchpos <= col && col <= matchpos + matchlen
+            return [strpart(line, matchpos, matchlen), lnum, matchpos, matchlen]
+        endif
+
+        let start += matchlen
+    endwhile
+
+    return ["", -1, -1, -1]
+endfunction " }}}
+function! intero#jump_to_error_at_cursor() " {{{
+    let [s, _, _, _] = intero#looking_at('\v[^:]+:\d+:\d+: ')
+    if len(s) == ""
+        return
+    endif
+    let [_, filename, line, column, _, _, _, _, _, _] = matchlist(s, '\v([^:]+):(\d+):(\d+): ')
+    let buffer = bufnr(filename)
+    let pos = [buffer, str2nr(line), str2nr(column), 0]
+    let window = bufwinnr(buffer)
+    execute window . 'wincmd w'
+    call setpos(".", pos)
 endfunction " }}}
 
 " vim:foldmethod=marker

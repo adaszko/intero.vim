@@ -37,6 +37,11 @@ augroup my_haskell
     " Does :reload on every write of a Haskell buffer, along with clearing the screen.
     autocmd BufWritePost *.hs call intero#send_keys(':reload')
 augroup END
+
+augroup my_intero " {{{
+    autocmd!
+    autocmd FileType intero nnoremap <silent> <buffer> <CR> :call intero#jump_to_error_at_cursor()<CR>
+augroup END " }}}
 ```
 
 4) Build Intero within your stack project: `stack build intero`
@@ -79,5 +84,6 @@ Breaking changes:
  * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.
 
 Backward-compatible changes:
+ * 2019-04-22 Quick jumping into error location
  * 2019-04-22 Support e.g. centering after a successful go-to-def
  * 2019-04-22 Support :reloading on a buffer write
