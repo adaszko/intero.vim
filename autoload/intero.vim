@@ -65,8 +65,7 @@ function! intero#open(command) " {{{
 
     let t:intero_ghci_buffer = intero#ghci_open(a:command)
     call setbufvar(t:intero_ghci_buffer, "&filetype", "intero")
-
-    execute "normal \<c-w>p"
+    wincmd p
 endfunction " }}}
 function! intero#close() " {{{
     if !exists('t:intero_ghci_buffer')
