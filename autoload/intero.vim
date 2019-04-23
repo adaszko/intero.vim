@@ -413,46 +413,29 @@ function! intero#all_types() " {{{
     return ch_read(t:intero_service_channel)
 endfunction " }}}
 
-function! intero#looking_at(regex) " {{{
-    let start = 0
-    let line = getline(".")
-    let [_, lnum, col, _] = getpos(".")
-
-    while 1
-        if start > col
-            break
-        endif
-
-        let matchpos = match(line, a:regex, start)
-        if matchpos == -1
-            break
-        endif
-
-        let matchlen = strlen(matchstr(strpart(line, matchpos), a:regex))
-        if matchlen == 0
-            throw 'looking_at: Zero-length match for regex: ' . a:regex
-        endif
-
-        if matchpos <= col && col <= matchpos + matchlen
-            return [strpart(line, matchpos, matchlen), lnum, matchpos, matchlen]
-        endif
-
-        let start += matchlen
-    endwhile
-
-    return ["", -1, -1, -1]
-endfunction " }}}
 function! intero#jump_to_error_at_cursor() " {{{
-    let [s, _, _, _] = intero#looking_at('\v[^:]+:\d+:\d+: ')
-    if len(s) == ""
+    let [_, line_number, _, _] = getpos(".")
+    while line_number > 0
+        let current_line = getline(line_number)
+        if len(current_line) == 0
+            break
+        endif
+
+        let groups = matchlist(current_line, '\v([^:]+):(\d+):(\d+): ')
+        if len(groups) == 0
+            let line_number -= 1
+            continue
+        endif
+
+        let [_, filename, line, column, _, _, _, _, _, _] = groups
+        let buffer = bufnr(filename)
+        let pos = [buffer, str2nr(line), str2nr(column), 0]
+        let window = bufwinnr(buffer)
+        execute window . 'wincmd w'
+        call setpos(".", pos)
         return
-    endif
-    let [_, filename, line, column, _, _, _, _, _, _] = matchlist(s, '\v([^:]+):(\d+):(\d+): ')
-    let buffer = bufnr(filename)
-    let pos = [buffer, str2nr(line), str2nr(column), 0]
-    let window = bufwinnr(buffer)
-    execute window . 'wincmd w'
-    call setpos(".", pos)
+    endwhile
+    call intero#warning('No location found at cursor')
 endfunction " }}}
 
 " vim:foldmethod=marker
