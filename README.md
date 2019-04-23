@@ -29,19 +29,22 @@ augroup my_haskell
     autocmd FileType haskell xnoremap <silent> <buffer> <LocalLeader>s :call intero#send_selection()<CR>
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>s :call intero#send_current_line()<CR>
 
-    " Populates the location list.  Use :lopen to see the results
+    " Populates the location list
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>R :call intero#uses_at_cursor()<CR>
 
     autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>l :call intero#send_line(printf(":load %s", expand("%")))<CR>
 
-    " Does :reload on every write of a Haskell buffer, along with clearing the screen.
-    autocmd BufWritePost *.hs call intero#send_keys(':reload')
-augroup END
+    function! s:reload_if_intero_running()
+        if intero#is_open()
+            call intero#send_keys(':reload')
+        endif
+    endfunction
 
-augroup my_intero " {{{
-    autocmd!
+    " Does :reload on every write of a Haskell buffer, along with clearing the screen.
+    autocmd BufWritePost *.hs :call s:reload_if_intero_running()
+
     autocmd FileType intero nnoremap <silent> <buffer> <CR> :call intero#jump_to_error_at_cursor()<CR>
-augroup END " }}}
+augroup END
 ```
 
 4) Build Intero within your stack project: `stack build intero`
