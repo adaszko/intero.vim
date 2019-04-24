@@ -438,4 +438,78 @@ function! intero#jump_to_error_at_cursor() " {{{
     call intero#warning('No location found at cursor')
 endfunction " }}}
 
+function! intero#open_url(url) " {{{
+    if has('mac')
+        silent execute '!open ' . escape(shellescape(a:url), "#!$%")
+        return
+    endif
+
+    call s:warning('Unknown OS')
+endfunction " }}}
+function! intero#go_to_def_or_open_browser(...) " {{{
+    let [_, lnum, col, _] = getpos(".")
+    let identifier = expand("<cword>")
+    try
+        let pos = intero#loc_at(lnum, col, lnum, col, identifier)
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+        return
+    endtry
+
+    if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
+        let buffer = bufnr(pos['file'])
+        if buffer < 0
+            execute printf("edit %s", pos['file'])
+            let buffer = bufnr(pos['file'])
+        endif
+        execute printf("buffer %s", buffer)
+        call setpos(".", [buffer, pos['start_line'], pos['start_col'], 0])
+
+        for normal_command in a:000
+            execute printf('normal %s', normal_command)
+        endfor
+        return
+    endif
+
+    " e.g. base:GHC.Base
+    let loc_at_components = matchlist(pos['raw'], '^\v([^:]+):(.*)$')
+    if len(loc_at_components) == 0
+        echo pos['raw']
+        return
+    endif
+    let [_, package_name, module, _, _, _, _, _, _, _] = loc_at_components
+
+    let matching_lines = systemlist("egrep '^[ \t]*resolver\s*:\s*' stack.yaml")
+    if len(matching_lines) == 0
+        call intero#error("No resolver found")
+        return
+    endif
+    if len(matching_lines) > 1
+        call intero#error("Ambiguous resolver spec found")
+        return
+    endif
+    let resolver = matchstr(matching_lines[0], '\v^\s*resolver\s*:\s*\zs.*\ze$')
+
+    let matching_packages = systemlist(printf("stack ls dependencies | grep '^%s\ [0-9.]*$'", package_name))
+    if len(matching_packages) == 0
+        call intero#error(printf("Dependency not found: %s", package_name))
+        return
+    endif
+    if len(matching_packages) > 1
+        call intero#error(printf("Ambiguous dependency reference: %s", package_name))
+        return
+    endif
+    let package_version = matchstr(matching_packages[0], printf('^%s \zs[0-9.]*\ze$', package_name))
+
+    " e.g. https://www.stackage.org/haddock/lts-11.22/base-4.10.1.0/src/GHC-Base.html#Maybe
+    let source_url = printf("https://www.stackage.org/haddock/%s/%s-%s/src/%s.html#%s",
+        \ resolver,
+        \ package_name,
+        \ package_version,
+        \ substitute(module, '\.', '-', 'g'),
+        \ identifier)
+
+    call intero#open_url(source_url)
+endfunction " }}}
+
 " vim:foldmethod=marker
