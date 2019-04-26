@@ -19,6 +19,7 @@ augroup my_haskell
 
     " intero#go_to_definition() accepts normal mode commands to execute after a successful jump
     autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition('zz')<CR>
+    autocmd FileType haskell noremap <silent> <buffer> gD :call intero#go_to_def_or_open_browser('zz')<CR>
     autocmd FileType haskell setlocal omnifunc=intero#omnicomplete
 
     autocmd FileType haskell xnoremap <silent> <buffer> <LocalLeader>t :call intero#type_of_selection()<CR>
@@ -87,6 +88,7 @@ Breaking changes:
  * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.
 
 Backward-compatible changes:
+ * 2019-04-26 Added intero#go_to_def_or_open_browser()
  * 2019-04-22 Quick jumping into error location
  * 2019-04-22 Support e.g. centering after a successful go-to-def
  * 2019-04-22 Support :reloading on a buffer write
