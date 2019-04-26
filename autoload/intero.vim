@@ -122,34 +122,49 @@ function! intero#send_keys(keys) " {{{
     endif
     call term_sendkeys(t:intero_ghci_buffer, a:keys)
 endfunction " }}}
-function! intero#send_line(string) " {{{
+function! intero#do_send_line(string) " {{{
     let line = printf("%s\<c-m>", a:string)
     return intero#send_keys(line)
+endfunction " }}}
+function! intero#send_line(string) " {{{
+    try
+        return intero#do_send_line(a:string)
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+    endtry
 endfunction " }}}
 function! intero#send_selection() range " {{{
     let selection = intero#get_selection()
     let lines = split(selection, "\n")
-    if len(lines) == 0
-        return
-    elseif len(lines) == 1
-        call intero#send_line(lines[0])
-    else
-        call intero#send_line(":{")
-        for line in lines
-            call intero#send_line(line)
-        endfor
-        call intero#send_line(":}")
-    endif
+    try
+        if len(lines) == 0
+            return
+        elseif len(lines) == 1
+            call intero#do_send_line(lines[0])
+        else
+            call intero#do_send_line(":{")
+            for line in lines
+                call intero#do_send_line(line)
+            endfor
+            call intero#do_send_line(":}")
+        endif
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+    endtry
 endfunction " }}}
 function! intero#send_current_line() " {{{
     let line = getline(".")
     let without_initial_whitespace = substitute(line, '\v^\s+', '', '')
-    return intero#send_line(without_initial_whitespace)
+    try
+        return intero#do_send_line(without_initial_whitespace)
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+    endtry
 endfunction " }}}
 function! intero#type_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = intero#get_module_name()
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
-    call intero#send_line(command)
+    call intero#do_send_line(command)
 endfunction " }}}
 function! intero#type_at_cursor() " {{{
     let [_, line, col, _] = getpos(".")
