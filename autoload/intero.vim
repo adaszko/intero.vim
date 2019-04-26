@@ -487,12 +487,35 @@ function! intero#go_to_def_or_open_browser(...) " {{{
     endif
 
     " e.g. base:GHC.Base
+    "  OR
+    " e.g. aeson-1.2.4.0-1QBfuAjIjpv9LBMZAcpjVW:Data.Aeson.Types.FromJSON
     let loc_at_components = matchlist(pos['raw'], '^\v([^:]+):(.*)$')
     if len(loc_at_components) == 0
         echo pos['raw']
         return
     endif
-    let [_, package_name, module, _, _, _, _, _, _, _] = loc_at_components
+    let [_, package_spec, module, _, _, _, _, _, _, _] = loc_at_components
+
+    let package_spec_components = matchlist(package_spec, '\v^([^-]+)-([0-9.]+)-.*$')
+    if len(package_spec_components) == 0
+        " base:GHC.Base case
+        let package_name = package_spec
+        let matching_packages = systemlist(printf("stack ls dependencies --include-base --external | grep '^%s\ [0-9.]*$'", package_name))
+        if len(matching_packages) == 0
+            call intero#error(printf("Dependency not found: %s", package_name))
+            return
+        endif
+        if len(matching_packages) > 1
+            call intero#error(printf("Ambiguous dependency reference: %s", package_name))
+            return
+        endif
+        let package_version = matchstr(matching_packages[0], printf('^%s \zs[0-9.]*\ze$', package_name))
+        let file_name = substitute(module, '\.', '-', 'g')
+    else
+        " aeson-1.2.4.0-1QBfuAjIjpv9LBMZAcpjVW:Data.Aeson.Types.FromJSON case
+        let [_, package_name, package_version, _, _, _, _, _, _, _] = package_spec_components
+        let file_name = module
+    endif
 
     let matching_lines = systemlist("egrep '^[ \t]*resolver\s*:\s*' stack.yaml")
     if len(matching_lines) == 0
@@ -505,23 +528,12 @@ function! intero#go_to_def_or_open_browser(...) " {{{
     endif
     let resolver = matchstr(matching_lines[0], '\v^\s*resolver\s*:\s*\zs.*\ze$')
 
-    let matching_packages = systemlist(printf("stack ls dependencies | grep '^%s\ [0-9.]*$'", package_name))
-    if len(matching_packages) == 0
-        call intero#error(printf("Dependency not found: %s", package_name))
-        return
-    endif
-    if len(matching_packages) > 1
-        call intero#error(printf("Ambiguous dependency reference: %s", package_name))
-        return
-    endif
-    let package_version = matchstr(matching_packages[0], printf('^%s \zs[0-9.]*\ze$', package_name))
-
     " e.g. https://www.stackage.org/haddock/lts-11.22/base-4.10.1.0/src/GHC-Base.html#Maybe
     let source_url = printf("https://www.stackage.org/haddock/%s/%s-%s/src/%s.html#%s",
         \ resolver,
         \ package_name,
         \ package_version,
-        \ substitute(module, '\.', '-', 'g'),
+        \ file_name,
         \ identifier)
 
     call intero#open_url(source_url)
