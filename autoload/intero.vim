@@ -64,6 +64,7 @@ function! intero#open(command) " {{{
     endif
 
     let t:intero_ghci_buffer = intero#ghci_open(a:command)
+    call setbufvar(t:intero_ghci_buffer, '&bufhidden', 'hide')
     call setbufvar(t:intero_ghci_buffer, "&filetype", "intero")
     wincmd p
 endfunction " }}}
@@ -90,7 +91,9 @@ function! intero#is_open() " {{{
     return exists('t:intero_ghci_buffer') && t:intero_ghci_buffer != 0 && bufloaded(t:intero_ghci_buffer)
 endfunction " }}}
 function! intero#toggle() " {{{
-    if intero#is_open()
+    if intero#is_open() && bufwinnr(t:intero_ghci_buffer) == -1
+        execute 'vertical' 'sbuffer' t:intero_ghci_buffer
+    elseif intero#is_open()
         call intero#close()
     else
         call intero#open('stack ghci --with-ghc intero')
