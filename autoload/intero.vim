@@ -108,7 +108,21 @@ function! intero#toggle_test() " {{{
     endif
 endfunction " }}}
 
+function! intero#find_regex(regex) " {{{
+    let [buffer, line, column, offset] = getpos('.')
+    call setpos('.', [buffer, 1, 1, 0])
+    let [module_line_number, _] = searchpos(a:regex)
+    let module_line = getline(module_line_number)
+    let match = matchstr(module_line, a:regex)
+    call setpos('.', [buffer, line, column, offset])
+    return match
+endfunction " }}}
 function! intero#get_module_name() " {{{
+    let module_name = intero#find_regex('\v^\s*module\s+\zs\S+\ze\s+where')
+    if module_name != ''
+        return module_name
+    endif
+
     let module = expand("%:t:r")
     if module == 'Spec'
         return 'Main'
