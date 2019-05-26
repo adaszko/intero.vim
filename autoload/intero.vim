@@ -144,7 +144,7 @@ function! intero#get_module_name() " {{{
     return module
 endfunction " }}}
 
-function! intero#send_keys(keys) " {{{
+function! intero#do_send_keys(keys) " {{{
     if !exists('t:intero_ghci_buffer')
         let t:intero_ghci_buffer = 0
     endif
@@ -153,9 +153,16 @@ function! intero#send_keys(keys) " {{{
     endif
     call term_sendkeys(t:intero_ghci_buffer, a:keys)
 endfunction " }}}
+function! intero#send_keys(keys) " {{{
+    try
+        call intero#do_send_keys(a:keys)
+    catch /^intero#intero-not-running$/
+        call intero#show_intero_not_running_error()
+    endtry
+endfunction " }}}
 function! intero#do_send_line(string) " {{{
     let line = printf("%s\<c-m>", a:string)
-    return intero#send_keys(line)
+    return intero#do_send_keys(line)
 endfunction " }}}
 function! intero#send_line(string) " {{{
     try
