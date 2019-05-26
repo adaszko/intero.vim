@@ -283,6 +283,19 @@ function! intero#loc_of_selection() range " {{{
 
     return intero#loc_at(start_line, start_col, end_line, end_col, label)
 endfunction " }}}
+
+function! intero#jump_to(pos) " {{{
+    " Save current cursor position in the jumplist so that <C-O> works
+    normal m'
+
+    let buffer = bufnr(a:pos['file'])
+    if buffer < 0
+        execute printf("edit %s", a:pos['file'])
+        let buffer = bufnr(a:pos['file'])
+    endif
+    execute printf("buffer %s", buffer)
+    call setpos(".", [buffer, a:pos['start_line'], a:pos['start_col'], 0])
+endfunction " }}}
 function! intero#go_to_definition(...) " {{{
     try
         let pos = intero#loc_at_cursor()
@@ -292,13 +305,7 @@ function! intero#go_to_definition(...) " {{{
     endtry
 
     if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
-        let buffer = bufnr(pos['file'])
-        if buffer < 0
-            execute printf("edit %s", pos['file'])
-            let buffer = bufnr(pos['file'])
-        endif
-        execute printf("buffer %s", buffer)
-        call setpos(".", [buffer, pos['start_line'], pos['start_col'], 0])
+        call intero#jump_to(pos)
 
         for normal_command in a:000
             execute printf('normal %s', normal_command)
@@ -543,13 +550,7 @@ function! intero#go_to_def_or_open_browser(...) " {{{
     endtry
 
     if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
-        let buffer = bufnr(pos['file'])
-        if buffer < 0
-            execute printf("edit %s", pos['file'])
-            let buffer = bufnr(pos['file'])
-        endif
-        execute printf("buffer %s", buffer)
-        call setpos(".", [buffer, pos['start_line'], pos['start_col'], 0])
+        call intero#jump_to(pos)
 
         for normal_command in a:000
             execute printf('normal %s', normal_command)
