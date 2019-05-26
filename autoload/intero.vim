@@ -14,7 +14,14 @@ endfunction " }}}
 function! intero#safe_system(command) " {{{
     let result = system(a:command)
     if v:shell_error != 0
-        throw 'intero#safe-system: Nonzero exit code: %d'
+        throw printf('intero#safe_system: Nonzero exit code: %d', v:shell_error)
+    endif
+    return result
+endfunction " }}}
+function! intero#safe_systemlist(command) " {{{
+    let result = systemlist(a:command)
+    if v:shell_error != 0
+        throw printf('intero#safe_systemlist: Nonzero exit code: %d', v:shell_error)
     endif
     return result
 endfunction " }}}
@@ -304,7 +311,7 @@ function! intero#get_ghc_version() " {{{
     return ghc_version
 endfunction " }}}
 function! intero#get_arch() " {{{
-    let lines = systemlist('stack --version')
+    let lines = intero#safe_systemlist('stack --version')
     let arch = matchstr(lines[0], '\v^[0-9.]+ \zs\S+\ze')
     return arch
 endfunction " }}}
@@ -486,7 +493,7 @@ function! intero#omnicomplete(findstart, base) " {{{
 endfunction " }}}
 
 function! intero#get_user_completions(base) " {{{
-    let extensions = systemlist("stack ghc -- --supported-extensions")
+    let extensions = intero#safe_systemlist("stack ghc -- --supported-extensions")
     let matching = filter(extensions, printf('v:val =~ "^%s"', escape(a:base, '"')))
     return matching
 endfunction " }}}
@@ -571,7 +578,7 @@ function! intero#parse_loc_at_raw(loc_at_raw) " {{{
 
     " base
     let package_name = package_spec
-    let matching_packages = systemlist(printf("stack ls dependencies --include-base --external | grep '^%s\ [0-9.]*$'", package_name))
+    let matching_packages = intero#safe_systemlist(printf("stack ls dependencies --include-base --external | grep '^%s\ [0-9.]*$'", package_name))
     if len(matching_packages) == 0
         call intero#error(printf("Dependency not found: %s", package_name))
         return
@@ -591,7 +598,7 @@ function! intero#parse_loc_at_raw(loc_at_raw) " {{{
 endfunction " }}}
 function! intero#get_stack_resolver() " {{{
     " Use readfile() here instead of grep
-    let matching_lines = systemlist("egrep '^[ \t]*resolver\s*:\s*' stack.yaml")
+    let matching_lines = intero#safe_systemlist("egrep '^[ \t]*resolver\s*:\s*' stack.yaml")
     if len(matching_lines) == 0
         throw 'intero#get_stack_resolver: No resolved found'
     endif
