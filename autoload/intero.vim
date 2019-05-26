@@ -532,11 +532,15 @@ function! intero#jump_to_error_at_cursor() " {{{
         endif
 
         let [_, filename, line, column, _, _, _, _, _, _] = groups
+        let position = {
+            \ 'file': filename,
+            \ 'start_line': str2nr(line),
+            \ 'start_col': str2nr(column)
+            \ }
         let buffer = bufnr(filename)
-        let pos = [buffer, str2nr(line), str2nr(column), 0]
         let window = bufwinnr(buffer)
         execute window . 'wincmd w'
-        call setpos(".", pos)
+        call intero#jump_to(position)
         return
     endwhile
     call intero#warning('No location found at cursor')
