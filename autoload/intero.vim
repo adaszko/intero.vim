@@ -26,11 +26,18 @@ function! intero#safe_systemlist(command) " {{{
     return result
 endfunction " }}}
 
+function! intero#strip_terminal_control_codes(line) " {{{
+    let line = substitute(a:line, "\x00", '', 'g')
+    " let line = substitute(line, "\x1b\[[0-9;]*m", '', 'g')
+    let line = substitute(line, "\x1b\[[0-9;]*[a-zA-Z]", '', 'g')
+    let line = substitute(line, "\x1b\[?1h", '', 'g')
+    let line = substitute(line, "\x1b\[?1l", '', 'g')
+    let line = substitute(line, "\x1b=", '', 'g')
+    let line = substitute(line, "\x1b>", '', 'g')
+    let line = substitute(line, "\n", '', 'g')
+    return line
+endfunction " }}}
 function! intero#callback(channel, message) " {{{
-    if exists('t:intero_service_port') && t:intero_service_port
-        return
-    endif
-
     let lines = split(a:message, "\r")
 
     if exists('t:intero_previous_truncated_line')
@@ -43,13 +50,33 @@ function! intero#callback(channel, message) " {{{
         call remove(lines, -1)
     endif
 
-    for line in lines
-        let port = matchstr(line, '\vIntero-Service-Port: \zs\d+\ze')
-        if len(port) > 0
-            let t:intero_service_port = port
-            return
-        endif
-    endfor
+    if exists('t:intero_reload_mode') && t:intero_reload_mode
+        let errorformat =
+            \ '%E%f:%l:%c:\ error:%#,' .
+            \ '%E%f:%l:%c:\ warning:%#'
+
+        for line in lines
+            let plain_line = intero#strip_terminal_control_codes(line)
+            let location = intero#parse_ghc_location(plain_line)
+            if location != {}
+                call setqflist([location], 'a')
+            else
+                if len(getqflist()) == 0
+                    " Do not add garbage at the start of the quickfix list
+                    continue
+                end
+                call setqflist([{'text': plain_line}], 'a')
+            endif
+        endfor
+    else
+        for line in lines
+            let port = matchstr(line, '\vIntero-Service-Port: \zs\d+\ze')
+            if len(port) > 0
+                let t:intero_service_port = port
+                return
+            endif
+        endfor
+    endif
 endfunction " }}}
 function! intero#close_callback(channel) " {{{
     call intero#close()
@@ -517,6 +544,21 @@ function! intero#all_types() " {{{
     return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
 
+function! intero#parse_ghc_location(line) " {{{
+    let components = matchlist(a:line, '\v(/[^:]+):(\d+):(\d+): error:')
+    if len(components) == 0
+        return {}
+    endif
+    let [_, filename, line, column, _, _, _, _, _, _] = components
+    let result = {
+        \ 'filename': filename,
+        \ 'lnum': str2nr(line),
+        \ 'col': str2nr(column),
+        \ 'type': 'E',
+        \ }
+    return result
+endfunction " }}}
+
 function! intero#jump_to_error_at_cursor() " {{{
     let [_, line_number, _, _] = getpos(".")
     while line_number > 0
@@ -525,17 +567,16 @@ function! intero#jump_to_error_at_cursor() " {{{
             break
         endif
 
-        let groups = matchlist(current_line, '\v([^:]+):(\d+):(\d+): ')
-        if len(groups) == 0
+        let location = intero#parse_ghc_location(current_line)
+        if location == {}
             let line_number -= 1
             continue
         endif
 
-        let [_, filename, line, column, _, _, _, _, _, _] = groups
         let position = {
-            \ 'file': filename,
-            \ 'start_line': str2nr(line),
-            \ 'start_col': str2nr(column)
+            \ 'file': location['filename'],
+            \ 'start_line': location['lnum'],
+            \ 'start_col': location['col']
             \ }
         let buffer = bufnr(filename)
         let window = bufwinnr(buffer)
@@ -618,6 +659,17 @@ function! intero#get_stack_resolver() " {{{
     endif
     let resolver = matchstr(matching_lines[0], '\v^\s*resolver\s*:\s*\zs.*\ze$')
     return resolver
+endfunction " }}}
+
+function! intero#reload() " {{{
+    call setqflist([], 'r')
+    let t:intero_reload_mode = 1
+    call intero#send_line(":reload")
+endfunction " }}}
+function! intero#clear_screen_reload() " {{{
+    call setqflist([], 'r')
+    let t:intero_reload_mode = 1
+    call intero#send_keys(':reload')
 endfunction " }}}
 
 " vim:foldmethod=marker

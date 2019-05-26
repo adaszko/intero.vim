@@ -90,6 +90,7 @@ Breaking changes:
  * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.
 
 Backward-compatible changes:
+ * 2019-05-26 Populate quickfix with GHCi errors on :reload
  * 2019-04-26 Added intero#go_to_def_or_open_browser()
  * 2019-04-22 Quick jumping into error location
  * 2019-04-22 Support e.g. centering after a successful go-to-def
