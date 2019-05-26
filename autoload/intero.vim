@@ -514,7 +514,7 @@ endfunction " }}}
 
 function! intero#all_types() " {{{
     call intero#send_service_line("all-types")
-    return ch_read(t:intero_service_channel)
+    return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
 
 function! intero#jump_to_error_at_cursor() " {{{
