@@ -19,7 +19,6 @@ augroup my_haskell
 
     " intero#go_to_definition() accepts normal mode commands to execute after a successful jump
     autocmd FileType haskell noremap <silent> <buffer> gd :call intero#go_to_definition('zz')<CR>
-    autocmd FileType haskell noremap <silent> <buffer> gD :call intero#go_to_def_or_open_browser('zz')<CR>
     autocmd FileType haskell setlocal omnifunc=intero#omnicomplete
 
     autocmd FileType haskell xnoremap <silent> <buffer> <LocalLeader>t :call intero#type_of_selection()<CR>
@@ -84,6 +83,9 @@ autocmd FileType haskell nnoremap <silent> <buffer> <LocalLeader>d :call intero#
 # Changelog
 
 Breaking changes:
+ * 2019-05-26 Added fallback to open web browser in `intero#go_to_definition()`
+    * Won't work with anything else than macOS and Google Chrome (porting is trivial)
+ * 2019-05-26 Removed `intero#go_to_def_or_open_browser()`
  * 2019-04-13 :uses now populates location list instead of quickfix list
  * 2019-04-13 Removed `intero#stack_build_toggle()`.  `stack build --file-watch` is as usable outside of Vim.
 

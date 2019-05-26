@@ -11,6 +11,13 @@ endfunction " }}}
 function! intero#show_intero_not_running_error() " {{{
     call intero#error('Please start Intero first')
 endfunction " }}}
+function! intero#safe_system(command) " {{{
+    let result = system(a:command)
+    if v:shell_error != 0
+        throw 'intero#safe-system: Nonzero exit code: %d'
+    endif
+    return result
+endfunction " }}}
 
 function! intero#callback(channel, message) " {{{
     if exists('t:intero_service_port') && t:intero_service_port
@@ -264,11 +271,6 @@ function! intero#loc_at(start_line, start_col, end_line, end_col, label) " {{{
     let resp = ch_read(t:intero_service_channel)
     return intero#parse_loc_at_resp(resp)
 endfunction " }}}
-function! intero#loc_at_cursor() " {{{
-    let [_, lnum, col, _] = getpos(".")
-    let label = expand("<cword>")
-    return intero#loc_at(lnum, col, lnum, col, label)
-endfunction " }}}
 function! intero#loc_of_selection() range " {{{
     let [_, start_line, start_col, _] = getpos("'<")
     let [_, end_line, end_col, _] = getpos("'>")
@@ -296,9 +298,21 @@ function! intero#jump_to(pos) " {{{
     execute printf("buffer %s", buffer)
     call setpos(".", [buffer, a:pos['start_line'], a:pos['start_col'], 0])
 endfunction " }}}
+function! intero#get_ghc_version() " {{{
+    let output = intero#safe_system('stack ghc -- --version')
+    let ghc_version = matchstr(output, '\vversion \zs[0-9.]+\ze')
+    return ghc_version
+endfunction " }}}
+function! intero#get_arch() " {{{
+    let lines = systemlist('stack --version')
+    let arch = matchstr(lines[0], '\v^[0-9.]+ \zs\S+\ze')
+    return arch
+endfunction " }}}
 function! intero#go_to_definition(...) " {{{
+    let [_, lnum, col, _] = getpos(".")
+    let label = expand("<cword>")
     try
-        let pos = intero#loc_at_cursor()
+        let pos = intero#loc_at(lnum, col, lnum, col, label)
     catch /^intero#intero-not-running$/
         call intero#show_intero_not_running_error()
         return
@@ -310,9 +324,46 @@ function! intero#go_to_definition(...) " {{{
         for normal_command in a:000
             execute printf('normal %s', normal_command)
         endfor
-    else
-        echo pos['raw']
+        return
     endif
+
+    try
+        let loc_at_raw = intero#parse_loc_at_raw(pos['raw'])
+    catch /^intero#parse_loc_at_raw: Unable to parse/
+        call intero#warning(pos['raw'])
+        return
+    endtry
+
+    " Fallback to haddock source view
+
+    " file:///Users/adaszko/repos/funnel/.stack-work/install/x86_64-osx/lts-11.8/8.2.2/doc/reddit-0.2.3.0/src/Reddit.Types.Post.html#PostID
+    let resolver = intero#get_stack_resolver()
+    let ghc_version = intero#get_ghc_version()
+    let arch = intero#get_arch()
+    let local_path = printf('%s/.stack-work/install/%s-osx/%s/%s/doc/%s-%s/src/%s.html',
+        \ getcwd(),
+        \ arch,
+        \ resolver,
+        \ ghc_version,
+        \ loc_at_raw['name'],
+        \ loc_at_raw['version'],
+        \ loc_at_raw['file_name'])
+
+    if filereadable(local_path)
+        let local_url = printf("file://%s#%s", local_path, label)
+        call intero#open_url(local_url)
+        return
+    endif
+
+    " e.g. https://www.stackage.org/haddock/lts-11.22/base-4.10.1.0/src/GHC-Base.html#Maybe
+    let online_url = printf("https://www.stackage.org/haddock/%s/%s-%s/src/%s.html#%s",
+        \ resolver,
+        \ loc_at_raw['name'],
+        \ loc_at_raw['version'],
+        \ loc_at_raw['file_name'],
+        \ label)
+
+    call intero#open_url(online_url)
 endfunction " }}}
 
 function! intero#parse_uses(lines, label) " {{{
@@ -439,7 +490,7 @@ function! intero#get_user_completions(base) " {{{
     let matching = filter(extensions, printf('v:val =~ "^%s"', escape(a:base, '"')))
     return matching
 endfunction " }}}
-function intero#completefunc(findstart, base) " {{{
+function! intero#completefunc(findstart, base) " {{{
     if a:findstart == 1
         return intero#omnicomplete_find_start()
     else
@@ -479,11 +530,22 @@ endfunction " }}}
 
 function! intero#open_url(url) " {{{
     if has('mac')
-        silent execute '!open ' . escape(shellescape(a:url), "#!$%")
+        " This is the only way to make URL #anchors work
+        let browser_path = expand('~/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome')
+        if !filereadable(browser_path)
+            throw 'intero#open_url: Chrome browser not found'
+        endif
+    else
+        call s:warning('Unknown OS')
         return
     endif
 
-    call s:warning('Unknown OS')
+    let command = printf('%s %s', shellescape(browser_path), shellescape(a:url))
+    let output = system(command)
+    if v:shell_error != 0
+        call intero#error(printf("Got exit code while trying to open URL: %d\n%s", v:shell_error, output))
+        return
+    endif
 endfunction " }}}
 function! intero#parse_loc_at_raw(loc_at_raw) " {{{
     " api-builder-0.15.0.0-B46fXHQp6RBAaFzgx6paUc:Network.API.Builder.Error
@@ -538,41 +600,6 @@ function! intero#get_stack_resolver() " {{{
     endif
     let resolver = matchstr(matching_lines[0], '\v^\s*resolver\s*:\s*\zs.*\ze$')
     return resolver
-endfunction " }}}
-function! intero#go_to_def_or_open_browser(...) " {{{
-    let [_, lnum, col, _] = getpos(".")
-    let identifier = expand("<cword>")
-    try
-        let pos = intero#loc_at(lnum, col, lnum, col, identifier)
-    catch /^intero#intero-not-running$/
-        call intero#show_intero_not_running_error()
-        return
-    endtry
-
-    if has_key(pos, 'file') && has_key(pos, 'start_line') && has_key(pos, 'start_col')
-        call intero#jump_to(pos)
-
-        for normal_command in a:000
-            execute printf('normal %s', normal_command)
-        endfor
-        return
-    endif
-
-    let loc_at_raw = intero#parse_loc_at_raw(pos['raw'])
-    let resolver = intero#get_stack_resolver()
-
-    " TODO Switch over to local location, e.g.:
-    " file:///Users/adaszko/repos/funnel/.stack-work/install/x86_64-osx/lts-11.8/8.2.2/doc/reddit-0.2.3.0/src/Reddit.Types.Post.html#PostID
-
-    " e.g. https://www.stackage.org/haddock/lts-11.22/base-4.10.1.0/src/GHC-Base.html#Maybe
-    let source_url = printf("https://www.stackage.org/haddock/%s/%s-%s/src/%s.html#%s",
-        \ resolver,
-        \ loc_at_raw['name'],
-        \ loc_at_raw['version'],
-        \ loc_at_raw['file_name'],
-        \ identifier)
-
-    call intero#open_url(source_url)
 endfunction " }}}
 
 " vim:foldmethod=marker
