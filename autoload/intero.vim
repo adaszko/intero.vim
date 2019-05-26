@@ -1,11 +1,11 @@
-function! intero#warning(msg) " {{{
+function! intero#warning(...) " {{{
     echohl WarningMsg
-    echo 'intero.vim:' a:msg
+    echo 'intero.vim:' call(function('printf'), a:000)
     echohl None
 endfunction " }}}
-function! intero#error(msg) " {{{
+function! intero#error(...) " {{{
     echohl ErrorMsg
-    echo 'intero.vim:' a:msg
+    echo 'intero.vim:' call(function('printf'), a:000)
     echohl None
 endfunction " }}}
 function! intero#show_intero_not_running_error() " {{{
@@ -550,7 +550,7 @@ function! intero#open_url(url) " {{{
     let command = printf('%s %s', shellescape(browser_path), shellescape(a:url))
     let output = system(command)
     if v:shell_error != 0
-        call intero#error(printf("Got exit code while trying to open URL: %d\n%s", v:shell_error, output))
+        call intero#error("Got exit code while trying to open URL: %d\n%s", v:shell_error, output)
         return
     endif
 endfunction " }}}
@@ -580,11 +580,11 @@ function! intero#parse_loc_at_raw(loc_at_raw) " {{{
     let package_name = package_spec
     let matching_packages = intero#safe_systemlist(printf("stack ls dependencies --include-base --external | grep '^%s\ [0-9.]*$'", package_name))
     if len(matching_packages) == 0
-        call intero#error(printf("Dependency not found: %s", package_name))
+        call intero#error("Dependency not found: %s", package_name)
         return
     endif
     if len(matching_packages) > 1
-        call intero#error(printf("Ambiguous dependency reference: %s", package_name))
+        call intero#error("Ambiguous dependency reference: %s", package_name)
         return
     endif
     let package_version = matchstr(matching_packages[0], printf('^%s \zs[0-9.]*\ze$', package_name))
