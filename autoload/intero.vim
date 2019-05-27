@@ -71,10 +71,10 @@ function! intero#callback(channel, message) " {{{
     endfor
 endfunction " }}}
 function! intero#close_callback(channel) " {{{
-    call intero#close()
+    call intero#stop()
 endfunction " }}}
 function! intero#exit_callback(job, exit_status) " {{{
-    call intero#close()
+    call intero#stop()
 endfunction " }}}
 function! intero#ghci_open(command) " {{{
     let options = {
@@ -90,22 +90,22 @@ function! intero#ghci_open(command) " {{{
 
     return term_start(a:command, options)
 endfunction " }}}
-function! intero#open(command) " {{{
-    if intero#is_open()
+function! intero#start(command) " {{{
+    if intero#is_running()
         call intero#warning("GHCi is already running")
         return
     endif
 
-    let t:intero_ghci_buffer = intero#ghci_open(a:command)
-    call setbufvar(t:intero_ghci_buffer, '&bufhidden', 'hide')
-    call setbufvar(t:intero_ghci_buffer, "&filetype", "intero")
+    let t:intero_buffer = intero#ghci_open(a:command)
+    call setbufvar(t:intero_buffer, '&bufhidden', 'hide')
+    call setbufvar(t:intero_buffer, "&filetype", "intero")
     wincmd p
 endfunction " }}}
-function! intero#close() " {{{
-    if !exists('t:intero_ghci_buffer')
-        let t:intero_ghci_buffer = 0
+function! intero#stop() " {{{
+    if !exists('t:intero_buffer')
+        let t:intero_buffer = 0
     endif
-    if t:intero_ghci_buffer == 0 || !bufloaded(t:intero_ghci_buffer)
+    if t:intero_buffer == 0 || !bufloaded(t:intero_buffer)
         return
     endif
 
@@ -117,27 +117,30 @@ function! intero#close() " {{{
         unlet t:intero_service_channel
     endif
 
-    execute printf('silent bdelete! %d', t:intero_ghci_buffer)
-    unlet t:intero_ghci_buffer
+    execute printf('silent bdelete! %d', t:intero_buffer)
+    unlet t:intero_buffer
 endfunction " }}}
-function! intero#is_open() " {{{
-    return exists('t:intero_ghci_buffer') && t:intero_ghci_buffer != 0 && bufloaded(t:intero_ghci_buffer)
+function! intero#is_running() " {{{
+    return exists('t:intero_buffer') && t:intero_buffer != 0 && bufloaded(t:intero_buffer)
+endfunction " }}}
+function! intero#is_visible() " {{{
+    return intero#is_running() && bufwinnr(t:intero_buffer) != -1
 endfunction " }}}
 function! intero#toggle() " {{{
-    if intero#is_open() && bufwinnr(t:intero_ghci_buffer) == -1
-        execute 'vertical' 'sbuffer' t:intero_ghci_buffer
-    elseif intero#is_open()
-        call intero#close()
+    if intero#is_running() && !intero#is_visible()
+        execute 'vertical' 'sbuffer' t:intero_buffer
+    elseif intero#is_running()
+        call intero#stop()
     else
-        call intero#open('stack ghci --with-ghc intero')
+        call intero#start('stack ghci --with-ghc intero')
     endif
 endfunction " }}}
 
 function! intero#toggle_test() " {{{
-    if intero#is_open()
-        call intero#close()
+    if intero#is_running()
+        call intero#stop()
     else
-        call intero#open('stack ghci --with-ghc intero --test --no-load')
+        call intero#start('stack ghci --with-ghc intero --test --no-load')
     endif
 endfunction " }}}
 
@@ -168,13 +171,13 @@ function! intero#get_module_name() " {{{
 endfunction " }}}
 
 function! intero#do_send_keys(keys) " {{{
-    if !exists('t:intero_ghci_buffer')
-        let t:intero_ghci_buffer = 0
+    if !exists('t:intero_buffer')
+        let t:intero_buffer = 0
     endif
-    if t:intero_ghci_buffer == 0 || !bufloaded(t:intero_ghci_buffer)
+    if t:intero_buffer == 0 || !bufloaded(t:intero_buffer)
         throw 'intero#intero-not-running'
     endif
-    call term_sendkeys(t:intero_ghci_buffer, a:keys)
+    call term_sendkeys(t:intero_buffer, a:keys)
 endfunction " }}}
 function! intero#send_keys(keys) " {{{
     try
