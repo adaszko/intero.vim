@@ -56,6 +56,16 @@ function! intero#callback(channel, message) " {{{
             let t:intero_service_port = port
         endif
 
+        let ok_modules_loaded = matchstr(line, '\vOk, modules loaded: .*')
+        if ok_modules_loaded != ''
+            call intero#info("%s", ok_modules_loaded)
+        endif
+
+        let failed_modules_loaded = matchstr(line, '\vFailed, modules loaded: .*')
+        if failed_modules_loaded != ''
+            call intero#error("%s", failed_modules_loaded)
+        endif
+
         let location = intero#parse_ghc_location(line)
         if location != {}
             call setqflist([location], 'a')
