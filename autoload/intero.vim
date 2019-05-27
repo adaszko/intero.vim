@@ -543,11 +543,6 @@ function! intero#completefunc(findstart, base) " {{{
     endif
 endfunction " }}}
 
-function! intero#all_types() " {{{
-    call intero#send_service_line("all-types")
-    return intero#slurp_resp(t:intero_service_channel)
-endfunction " }}}
-
 function! intero#parse_ghc_location(line) " {{{
     let components = matchlist(a:line, '\v(/[^:]+):(\d+):(\d+): error:')
     if len(components) == 0
