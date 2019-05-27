@@ -485,7 +485,7 @@ function! intero#slurp_resp(channel) " {{{
 endfunction " }}}
 function! intero#uses(start_line, start_col, end_line, end_col, label) " {{{
     let module = intero#get_module_name()
-    let command = printf("uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
+    let command = printf(":uses %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#send_service_line(command)
     return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
@@ -496,6 +496,7 @@ function! intero#uses_at_cursor() " {{{
     try
         let refs = intero#parse_uses(resp, label)
         call setloclist(0, refs)
+        call intero#info("Populated location list with %d items", len(refs))
     catch /^intero#parse-error:/
         call intero#error(resp[0])
     endtry
@@ -516,6 +517,7 @@ function! intero#uses_of_selection() range " {{{
     try
         let refs = intero#parse_uses(resp, label)
         call setloclist(0, refs)
+        call intero#info("Populated location list with %d items", len(refs))
     catch /^intero#parse-error:/
         call intero#error(resp[0])
     endtry
