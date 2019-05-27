@@ -1,11 +1,9 @@
-function! intero#warning(...) " {{{
-    echohl WarningMsg
-    echo 'intero.vim:' call(function('printf'), a:000)
-    echohl None
+function! intero#info(...) " {{{
+    echomsg 'intero.vim:' call(function('printf'), a:000)
 endfunction " }}}
 function! intero#error(...) " {{{
     echohl ErrorMsg
-    echo 'intero.vim:' call(function('printf'), a:000)
+    echomsg 'intero.vim:' call(function('printf'), a:000)
     echohl None
 endfunction " }}}
 function! intero#show_intero_not_running_error() " {{{
@@ -92,7 +90,7 @@ function! intero#ghci_open(command) " {{{
 endfunction " }}}
 function! intero#start(command) " {{{
     if intero#is_running()
-        call intero#warning("GHCi is already running")
+        call intero#error("GHCi is already running")
         return
     endif
 
@@ -370,7 +368,7 @@ function! intero#go_to_definition(...) " {{{
     try
         let loc_at_raw = intero#parse_loc_at_raw(pos['raw'])
     catch /^intero#parse_loc_at_raw: Unable to parse/
-        call intero#warning(pos['raw'])
+        call intero#error(pos['raw'])
         return
     endtry
 
@@ -468,7 +466,7 @@ function! intero#uses_at_cursor() " {{{
         let refs = intero#parse_uses(resp, label)
         call setloclist(0, refs)
     catch /^intero#parse-error:/
-        echo resp[0]
+        call intero#error(resp[0])
     endtry
 endfunction " }}}
 function! intero#uses_of_selection() range " {{{
@@ -488,7 +486,7 @@ function! intero#uses_of_selection() range " {{{
         let refs = intero#parse_uses(resp, label)
         call setloclist(0, refs)
     catch /^intero#parse-error:/
-        echo resp[0]
+        call intero#error(resp[0])
     endtry
 endfunction " }}}
 
@@ -578,7 +576,7 @@ function! intero#jump_to_error_at_cursor() " {{{
         call intero#jump_to(position)
         return
     endwhile
-    call intero#warning('No location found at cursor')
+    call intero#error('No location found at cursor')
 endfunction " }}}
 
 function! intero#open_url(url) " {{{
