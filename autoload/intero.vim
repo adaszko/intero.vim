@@ -151,12 +151,16 @@ endfunction " }}}
 
 function! intero#find_regex(regex) " {{{
     let [buffer, line, column, offset] = getpos('.')
-    call setpos('.', [buffer, 1, 1, 0])
-    let [module_line_number, _] = searchpos(a:regex)
-    let module_line = getline(module_line_number)
-    let match = matchstr(module_line, a:regex)
-    call setpos('.', [buffer, line, column, offset])
-    return match
+    try
+        call setpos('.', [buffer, 1, 1, 0])
+        let [module_line_number, _] = searchpos(a:regex)
+        let module_line = getline(module_line_number)
+        let match = matchstr(module_line, a:regex)
+        return match
+    finally
+        call setpos('.', [buffer, line, column, offset])
+    endtry
+    return ''
 endfunction " }}}
 function! intero#get_module_name() " {{{
     let module_name = intero#find_regex('\v^\s*module\s+\zs\S+\ze\s+where')
