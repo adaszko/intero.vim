@@ -241,11 +241,20 @@ function! intero#type_at(start_line, start_col, end_line, end_col, label) " {{{
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
     call intero#do_send_line(command)
 endfunction " }}}
+function! intero#get_type_at(start_line, start_col, end_line, end_col, label) " {{{
+    let module = intero#get_module_name()
+    let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
+    return intero#service_command(command)[0]
+endfunction " }}}
 function! intero#type_at_cursor() " {{{
     let [_, line, col, _] = getpos(".")
     let label = expand("<cword>")
     try
-        call intero#type_at(line, col, line, col, label)
+        if intero#is_visible()
+            call intero#type_at(line, col, line, col, label)
+        else
+            call intero#info("%s", intero#get_type_at(line, col, line, col, label))
+        endif
     catch /^intero#intero-not-running$/
         call intero#show_intero_not_running_error()
         return
@@ -275,7 +284,12 @@ function! intero#type_of_selection() range " {{{
     endif
 
     try
-        call intero#type_at(start_line, start_col, end_line, end_col, label)
+        if intero#is_visible()
+            call intero#type_at(start_line, start_col, end_line, end_col, label)
+        else
+            redraw
+            call intero#info("%s", intero#get_type_at(start_line, start_col, end_line, end_col, label))
+        endif
     catch /^intero#intero-not-running$/
         call intero#show_intero_not_running_error()
         return
@@ -294,6 +308,10 @@ function! intero#send_service_line(line) " {{{
 
     let message = printf("%s\r\n", a:line)
     call ch_sendraw(t:intero_service_channel, message)
+endfunction " }}}
+function! intero#service_command(command) " {{{
+    call intero#send_service_line(a:command)
+    return intero#slurp_resp(t:intero_service_channel)
 endfunction " }}}
 function! intero#parse_loc_at_resp(resp) " {{{
     " e.g. /Users/adaszko/repos/playground/app/Main.hs:(25,16)-(25,17)
