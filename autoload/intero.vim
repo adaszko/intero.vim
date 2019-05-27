@@ -122,6 +122,9 @@ function! intero#stop() " {{{
     endif
 
     if exists('t:intero_service_channel')
+        if ch_status(t:intero_service_channel) == 'open'
+            call ch_close(t:intero_service_channel)
+        endif
         unlet t:intero_service_channel
     endif
 
