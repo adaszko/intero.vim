@@ -38,45 +38,37 @@ function! intero#strip_terminal_control_codes(line) " {{{
     return line
 endfunction " }}}
 function! intero#callback(channel, message) " {{{
-    let lines = split(a:message, "\r")
+    let raw_lines = split(a:message, "\r")
 
     if exists('t:intero_previous_truncated_line')
-        let lines[0] = t:intero_previous_truncated_line . lines[0]
+        let raw_lines[0] = t:intero_previous_truncated_line . raw_lines[0]
     endif
 
-    let last = lines[-1]
+    let last = raw_lines[-1]
     if last[strlen(last)-1] != ""
-        let t:intero_previous_truncated_line = lines[-1]
-        call remove(lines, -1)
+        let t:intero_previous_truncated_line = raw_lines[-1]
+        call remove(raw_lines, -1)
     endif
 
-    if exists('t:intero_reload_mode') && t:intero_reload_mode
-        let errorformat =
-            \ '%E%f:%l:%c:\ error:%#,' .
-            \ '%E%f:%l:%c:\ warning:%#'
+    for raw_line in raw_lines
+        let line = intero#strip_terminal_control_codes(raw_line)
 
-        for line in lines
-            let plain_line = intero#strip_terminal_control_codes(line)
-            let location = intero#parse_ghc_location(plain_line)
-            if location != {}
-                call setqflist([location], 'a')
-            else
-                if len(getqflist()) == 0
-                    " Do not add garbage at the start of the quickfix list
-                    continue
-                end
-                call setqflist([{'text': plain_line}], 'a')
-            endif
-        endfor
-    else
-        for line in lines
-            let port = matchstr(line, '\vIntero-Service-Port: \zs\d+\ze')
-            if len(port) > 0
-                let t:intero_service_port = port
-                return
-            endif
-        endfor
-    endif
+        let port = matchstr(line, '\vIntero-Service-Port: \zs\d+\ze')
+        if port != ''
+            let t:intero_service_port = port
+        endif
+
+        let location = intero#parse_ghc_location(line)
+        if location != {}
+            call setqflist([location], 'a')
+        else
+            if len(getqflist()) == 0
+                " Do not add garbage at the start of the quickfix list
+                continue
+            end
+            call setqflist([{'text': line}], 'a')
+        endif
+    endfor
 endfunction " }}}
 function! intero#close_callback(channel) " {{{
     call intero#close()
@@ -662,12 +654,10 @@ endfunction " }}}
 
 function! intero#reload() " {{{
     call setqflist([], 'r')
-    let t:intero_reload_mode = 1
     call intero#send_line(":reload")
 endfunction " }}}
 function! intero#clear_screen_reload() " {{{
     call setqflist([], 'r')
-    let t:intero_reload_mode = 1
     call intero#send_keys(':reload')
 endfunction " }}}
 
