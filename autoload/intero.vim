@@ -1,9 +1,9 @@
 function! intero#info(...) " {{{
-    echomsg 'intero.vim:' call(function('printf'), a:000)
+    echomsg call(function('printf'), a:000)
 endfunction " }}}
 function! intero#error(...) " {{{
     echohl ErrorMsg
-    echomsg 'intero.vim:' call(function('printf'), a:000)
+    echomsg call(function('printf'), a:000)
     echohl None
 endfunction " }}}
 function! intero#show_intero_not_running_error() " {{{
@@ -257,7 +257,20 @@ endfunction " }}}
 function! intero#get_type_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = intero#get_module_name()
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
-    return intero#service_command(command)
+    let resp = intero#service_command(command)
+    if resp == []
+        return ''
+    endif
+    let first_line = intero#strip_trailing_whitespace(resp[0])
+    let remaining_lines = map(resp[1:], 'intero#strip_leading_whitespace(v:val)')
+    let all_lines = [first_line] + remaining_lines
+    return join(all_lines)
+endfunction " }}}
+function! intero#strip_leading_whitespace(str) " {{{
+    return substitute(a:str, '\v^\s*', '', '')
+endfunction " }}}
+function! intero#strip_trailing_whitespace(str) " {{{
+    return substitute(a:str, '\v\s*$', '', '')
 endfunction " }}}
 function! intero#type_at_cursor() " {{{
     let [_, line, col, _] = getpos(".")
@@ -266,11 +279,11 @@ function! intero#type_at_cursor() " {{{
         if intero#is_visible()
             call intero#type_at(line, col, line, col, label)
         else
-            let type = intero#get_type_at(line, col, line, col, label)
-            if type == []
-                call intero#error("Type unknown: %s", label)
+            let resp = intero#get_type_at(line, col, line, col, label)
+            if resp == ''
+                call intero#error("%s :: ???", label)
             else
-                call intero#info("%s", type[0])
+                call intero#info("%s", resp)
             endif
         endif
     catch /^intero#intero-not-running$/
@@ -306,11 +319,11 @@ function! intero#type_of_selection() range " {{{
             call intero#type_at(start_line, start_col, end_line, end_col, label)
         else
             redraw
-            let type = intero#get_type_at(start_line, start_col, end_line, end_col, label)
-            if type == []
-                call intero#error("Type unknown: %s", label)
+            let resp = intero#get_type_at(start_line, start_col, end_line, end_col, label)
+            if resp == ''
+                call intero#error("%s :: ???", label)
             else
-                call intero#info("%s", type[0])
+                call intero#info("%s", resp)
             endif
         endif
     catch /^intero#intero-not-running$/
