@@ -91,6 +91,7 @@ function! intero#ghci_open(command) " {{{
         \ 'term_kill':   'quit',
         \ 'vertical':    1,
         \ 'norestore':   1,
+        \ 'hidden':      1,
         \ 'callback':    function('intero#callback'),
         \ 'exit_cb':     function('intero#exit_callback'),
         \ 'close_cb':    function('intero#close_callback'),
@@ -98,7 +99,7 @@ function! intero#ghci_open(command) " {{{
 
     return term_start(a:command, options)
 endfunction " }}}
-function! intero#start(command) " {{{
+function! intero#start_with(command) " {{{
     if intero#is_running()
         call intero#error("GHCi is already running")
         return
@@ -108,6 +109,18 @@ function! intero#start(command) " {{{
     call setbufvar(g:intero_buffer, '&bufhidden', 'hide')
     call setbufvar(g:intero_buffer, "&filetype", "intero")
     wincmd p
+endfunction " }}}
+function! intero#start() " {{{
+    call intero#start_with('stack ghci --with-ghc intero')
+endfunction " }}}
+function! intero#ensure_started() " {{{
+    if intero#is_running()
+        return
+    endif
+    call intero#start()
+endfunction " }}}
+function! intero#start_test() " {{{
+    call intero#start_with('stack ghci --with-ghc intero --test --no-load')
 endfunction " }}}
 function! intero#stop() " {{{
     if !exists('g:intero_buffer')
@@ -143,7 +156,7 @@ function! intero#toggle() " {{{
     elseif intero#is_running()
         call intero#stop()
     else
-        call intero#start('stack ghci --with-ghc intero')
+        call intero#start()
     endif
 endfunction " }}}
 
@@ -151,7 +164,7 @@ function! intero#toggle_test() " {{{
     if intero#is_running()
         call intero#stop()
     else
-        call intero#start('stack ghci --with-ghc intero --test --no-load')
+        call intero#start_test()
     endif
 endfunction " }}}
 
@@ -244,7 +257,7 @@ endfunction " }}}
 function! intero#get_type_at(start_line, start_col, end_line, end_col, label) " {{{
     let module = intero#get_module_name()
     let command = printf(":type-at %s %d %d %d %d %s", module, a:start_line, a:start_col, a:end_line, a:end_col, a:label)
-    return intero#service_command(command)[0]
+    return intero#service_command(command)
 endfunction " }}}
 function! intero#type_at_cursor() " {{{
     let [_, line, col, _] = getpos(".")
@@ -253,7 +266,12 @@ function! intero#type_at_cursor() " {{{
         if intero#is_visible()
             call intero#type_at(line, col, line, col, label)
         else
-            call intero#info("%s", intero#get_type_at(line, col, line, col, label))
+            let type = intero#get_type_at(line, col, line, col, label)
+            if type == []
+                call intero#error("Type unknown: %s", label)
+            else
+                call intero#info("%s", type[0])
+            endif
         endif
     catch /^intero#intero-not-running$/
         call intero#show_intero_not_running_error()
@@ -288,7 +306,12 @@ function! intero#type_of_selection() range " {{{
             call intero#type_at(start_line, start_col, end_line, end_col, label)
         else
             redraw
-            call intero#info("%s", intero#get_type_at(start_line, start_col, end_line, end_col, label))
+            let type = intero#get_type_at(start_line, start_col, end_line, end_col, label)
+            if type == []
+                call intero#error("Type unknown: %s", label)
+            else
+                call intero#info("%s", type[0])
+            endif
         endif
     catch /^intero#intero-not-running$/
         call intero#show_intero_not_running_error()
@@ -475,7 +498,7 @@ endfunction " }}}
 function! intero#slurp_resp(channel) " {{{
     let lines = []
     while ch_status(a:channel) == 'open'
-        let line = ch_read(a:channel)
+        let line = ch_read(a:channel, {'timeout': 1000})
         if len(line) == 0
             continue
         endif
