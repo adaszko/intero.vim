@@ -64,6 +64,7 @@ function! intero#callback(channel, message) " {{{
         let failed_modules_loaded = matchstr(line, '\vFailed, modules loaded: .*')
         if failed_modules_loaded != ''
             call intero#error("%s", failed_modules_loaded)
+            execute 'cc 1'
         endif
 
         let location = intero#parse_ghc_location(line)
