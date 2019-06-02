@@ -98,7 +98,11 @@ function! intero#ghci_open(command) " {{{
         \ 'close_cb':    function('intero#close_callback'),
         \ }
 
-    return term_start(a:command, options)
+    let buffer = term_start(a:command, options)
+    if buffer == 0
+        throw 'intero#ghci_open: Failed to start terminal'
+    endif
+    return buffer
 endfunction " }}}
 function! intero#start_with(command) " {{{
     if intero#is_running()
@@ -111,7 +115,27 @@ function! intero#start_with(command) " {{{
     call setbufvar(g:intero_buffer, "&filetype", "intero")
     wincmd p
 endfunction " }}}
+function! intero#is_intero_usable() " {{{
+    let stack_command = 'stack --version'
+    call system(stack_command)
+    if v:shell_error != 0
+        call intero#error('`%s` failed with exit code %d; Please install Stack first', stack_command, v:shell_error)
+        return 0
+    endif
+
+    let intero_command = 'stack exec intero -- --version'
+    call system(intero_command)
+    if v:shell_error != 0
+        call intero#error('`%s` failed with exit code %d; Please do `stack build intero` first', intero_command, v:shell_error)
+        return 0
+    endif
+
+    return 1
+endfunction " }}}
 function! intero#start() " {{{
+    if !intero#is_intero_usable()
+        return
+    endif
     call intero#start_with('stack ghci --with-ghc intero')
 endfunction " }}}
 function! intero#ensure_started() " {{{
@@ -121,16 +145,12 @@ function! intero#ensure_started() " {{{
     call intero#start()
 endfunction " }}}
 function! intero#start_test() " {{{
+    if !intero#is_intero_usable()
+        return
+    endif
     call intero#start_with('stack ghci --with-ghc intero --test --no-load')
 endfunction " }}}
 function! intero#stop() " {{{
-    if !exists('g:intero_buffer')
-        let g:intero_buffer = 0
-    endif
-    if g:intero_buffer == 0 || !bufloaded(g:intero_buffer)
-        return
-    endif
-
     if exists('g:intero_service_port')
         unlet g:intero_service_port
     endif
@@ -142,11 +162,15 @@ function! intero#stop() " {{{
         unlet g:intero_service_channel
     endif
 
-    execute printf('silent bdelete! %d', g:intero_buffer)
-    unlet g:intero_buffer
+    if exists('g:intero_buffer')
+        if bufloaded(g:intero_buffer)
+            execute printf('silent bdelete! %d', g:intero_buffer)
+        endif
+        unlet g:intero_buffer
+    endif
 endfunction " }}}
 function! intero#is_running() " {{{
-    return exists('g:intero_buffer') && g:intero_buffer != 0 && bufloaded(g:intero_buffer)
+    return exists('g:intero_buffer') && bufloaded(g:intero_buffer)
 endfunction " }}}
 function! intero#is_visible() " {{{
     return intero#is_running() && bufwinnr(g:intero_buffer) != -1
@@ -196,10 +220,7 @@ function! intero#get_module_name() " {{{
 endfunction " }}}
 
 function! intero#do_send_keys(keys) " {{{
-    if !exists('g:intero_buffer')
-        let g:intero_buffer = 0
-    endif
-    if g:intero_buffer == 0 || !bufloaded(g:intero_buffer)
+    if !intero#is_running()
         throw 'intero#intero-not-running'
     endif
     call term_sendkeys(g:intero_buffer, a:keys)
