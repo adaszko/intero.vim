@@ -126,7 +126,7 @@ function! intero#is_intero_usable() " {{{
     let intero_command = 'stack exec intero -- --version'
     call system(intero_command)
     if v:shell_error != 0
-        call intero#error('`%s` failed with exit code %d; Please do `stack build intero` first', intero_command, v:shell_error)
+        call intero#error('`%s` failed with exit code %d; Please do `stack install intero` first', intero_command, v:shell_error)
         return 0
     endif
 
