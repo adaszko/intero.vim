@@ -115,6 +115,25 @@ function! intero#start_with(command) " {{{
     call setbufvar(g:intero_buffer, "&filetype", "intero")
     wincmd p
 endfunction " }}}
+function! intero#find_stack_project_directory() " {{{
+    let stack_project_file = 'stack.yaml'
+
+    let current_file_dir = expand("%:p:h")
+    let relative_path = findfile(stack_project_file, printf("%s;", current_file_dir))
+    if relative_path != ''
+        let dir_full_path = fnamemodify(relative_path, ':p:h')
+        return dir_full_path
+    endif
+
+    let current_dir = getcwd()
+    let relative_path = findfile(stack_project_file, printf("%s;", current_file_dir))
+    if relative_path != ''
+        let dir_full_path = fnamemodify(relative_path, ':p:h')
+        return dir_full_path
+    endif
+
+    return ''
+endfunction " }}}
 function! intero#is_intero_usable() " {{{
     let stack_command = 'stack --version'
     call system(stack_command)
@@ -122,6 +141,14 @@ function! intero#is_intero_usable() " {{{
         call intero#error('`%s` failed with exit code %d; Please install Stack first', stack_command, v:shell_error)
         return 0
     endif
+
+    let stack_project_directory = intero#find_stack_project_directory()
+    if stack_project_directory == ''
+        call intero#error('Unable to find stack.yml; Please run `stack new` first')
+        return 0
+    endif
+
+    execute 'lcd' stack_project_directory
 
     let intero_command = 'stack exec intero -- --version'
     call system(intero_command)
